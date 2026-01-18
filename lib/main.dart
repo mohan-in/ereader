@@ -25,7 +25,6 @@ class EReaderApp extends StatelessWidget {
         title: 'eReader',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
         themeMode: ThemeMode.light,
         home: const LibraryScreen(),
       ),
