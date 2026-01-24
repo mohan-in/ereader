@@ -10,6 +10,14 @@ class Book {
   final String? lastReadCfi;
   final DateTime? lastReadAt;
 
+  final double progress;
+
+  // Formatting preferences (per-book)
+  final double fontSize;
+  final int fontIndex;
+  final int lineSpacingIndex;
+  final int textAlignmentIndex;
+
   const Book({
     required this.id,
     required this.title,
@@ -18,6 +26,11 @@ class Book {
     this.coverPath,
     this.lastReadCfi,
     this.lastReadAt,
+    this.progress = 0.0,
+    this.fontSize = 16.0,
+    this.fontIndex = 0,
+    this.lineSpacingIndex = 1, // Normal
+    this.textAlignmentIndex = 1, // Justify
   });
 
   Book copyWith({
@@ -28,6 +41,11 @@ class Book {
     String? coverPath,
     String? lastReadCfi,
     DateTime? lastReadAt,
+    double? progress,
+    double? fontSize,
+    int? fontIndex,
+    int? lineSpacingIndex,
+    int? textAlignmentIndex,
   }) {
     return Book(
       id: id ?? this.id,
@@ -37,6 +55,11 @@ class Book {
       coverPath: coverPath ?? this.coverPath,
       lastReadCfi: lastReadCfi ?? this.lastReadCfi,
       lastReadAt: lastReadAt ?? this.lastReadAt,
+      progress: progress ?? this.progress,
+      fontSize: fontSize ?? this.fontSize,
+      fontIndex: fontIndex ?? this.fontIndex,
+      lineSpacingIndex: lineSpacingIndex ?? this.lineSpacingIndex,
+      textAlignmentIndex: textAlignmentIndex ?? this.textAlignmentIndex,
     );
   }
 
@@ -50,6 +73,11 @@ class Book {
       'coverPath': coverPath,
       'lastReadCfi': lastReadCfi,
       'lastReadAt': lastReadAt?.toIso8601String(),
+      'progress': progress,
+      'fontSize': fontSize,
+      'fontIndex': fontIndex,
+      'lineSpacingIndex': lineSpacingIndex,
+      'textAlignmentIndex': textAlignmentIndex,
     };
   }
 
@@ -65,6 +93,11 @@ class Book {
       lastReadAt: json['lastReadAt'] != null
           ? DateTime.parse(json['lastReadAt'] as String)
           : null,
+      progress: (json['progress'] as num?)?.toDouble() ?? 0.0,
+      fontSize: (json['fontSize'] as num?)?.toDouble() ?? 16.0,
+      fontIndex: json['fontIndex'] as int? ?? 0,
+      lineSpacingIndex: json['lineSpacingIndex'] as int? ?? 1,
+      textAlignmentIndex: json['textAlignmentIndex'] as int? ?? 1,
     );
   }
 

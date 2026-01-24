@@ -5,16 +5,40 @@ import '../models/book.dart';
 
 /// Available fonts for the reader.
 enum ReaderFont {
-  defaultFont('Default', 'serif'),
-  sansSerif('Sans Serif', 'sans-serif'),
-  roboto('Roboto', 'Roboto, sans-serif'),
-  georgia('Georgia', 'Georgia, serif'),
-  openDyslexic('OpenDyslexic', 'OpenDyslexic, sans-serif');
+  bookDefault('Book Default', 'inherit'),
+  serif('Serif', 'serif'),
+  sansSerif('Sans Serif', 'sans-serif');
 
   final String displayName;
   final String fontFamily;
 
   const ReaderFont(this.displayName, this.fontFamily);
+}
+
+/// Line spacing options for the reader.
+enum LineSpacing {
+  compact('Compact', 1.2),
+  normal('Normal', 1.5),
+  relaxed('Relaxed', 1.8),
+  loose('Loose', 2.0);
+
+  final String displayName;
+  final double value;
+
+  const LineSpacing(this.displayName, this.value);
+}
+
+/// Text alignment options for the reader.
+enum TextAlignment {
+  left('Left', 'left'),
+  justify('Justify', 'justify'),
+  center('Center', 'center'),
+  right('Right', 'right');
+
+  final String displayName;
+  final String cssValue;
+
+  const TextAlignment(this.displayName, this.cssValue);
 }
 
 /// Manages the EPUB reader state.
@@ -24,7 +48,9 @@ class ReaderNotifier extends ChangeNotifier {
   EpubLocation? _currentLocation;
   bool _isLoading = false;
   double _fontSize = 16.0;
-  ReaderFont _font = ReaderFont.defaultFont;
+  ReaderFont _font = ReaderFont.bookDefault;
+  LineSpacing _lineSpacing = LineSpacing.normal;
+  TextAlignment _textAlignment = TextAlignment.justify;
   String? _error;
 
   Book? get currentBook => _currentBook;
@@ -33,14 +59,29 @@ class ReaderNotifier extends ChangeNotifier {
   bool get isLoading => _isLoading;
   double get fontSize => _fontSize;
   ReaderFont get font => _font;
+  LineSpacing get lineSpacing => _lineSpacing;
+  TextAlignment get textAlignment => _textAlignment;
   String? get error => _error;
 
-  /// Sets the current book to read.
+  /// Sets the current book to read and loads its formatting preferences.
   void setCurrentBook(Book book) {
     _currentBook = book;
     _chapters = [];
     _currentLocation = null;
     _error = null;
+
+    // Load formatting from book
+    _fontSize = book.fontSize;
+    _font = book.fontIndex < ReaderFont.values.length
+        ? ReaderFont.values[book.fontIndex]
+        : ReaderFont.bookDefault;
+    _lineSpacing = book.lineSpacingIndex < LineSpacing.values.length
+        ? LineSpacing.values[book.lineSpacingIndex]
+        : LineSpacing.normal;
+    _textAlignment = book.textAlignmentIndex < TextAlignment.values.length
+        ? TextAlignment.values[book.textAlignmentIndex]
+        : TextAlignment.justify;
+
     notifyListeners();
   }
 
@@ -81,6 +122,18 @@ class ReaderNotifier extends ChangeNotifier {
   /// Sets the font family.
   void setFont(ReaderFont font) {
     _font = font;
+    notifyListeners();
+  }
+
+  /// Sets the line spacing.
+  void setLineSpacing(LineSpacing spacing) {
+    _lineSpacing = spacing;
+    notifyListeners();
+  }
+
+  /// Sets the text alignment.
+  void setTextAlignment(TextAlignment alignment) {
+    _textAlignment = alignment;
     notifyListeners();
   }
 

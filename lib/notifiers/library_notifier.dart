@@ -115,12 +115,17 @@ class LibraryNotifier extends ChangeNotifier {
   }
 
   /// Updates a book's reading progress.
-  Future<void> updateReadingProgress(String bookId, String cfi) async {
+  Future<void> updateReadingProgress(
+    String bookId,
+    String cfi, {
+    double progress = 0.0,
+  }) async {
     final index = _books.indexWhere((book) => book.id == bookId);
     if (index != -1) {
       _books[index] = _books[index].copyWith(
         lastReadCfi: cfi,
         lastReadAt: DateTime.now(),
+        progress: progress,
       );
       await _saveBooks();
       notifyListeners();
@@ -138,6 +143,27 @@ class LibraryNotifier extends ChangeNotifier {
       _books[index] = _books[index].copyWith(title: title, author: author);
       await _saveBooks();
       notifyListeners();
+    }
+  }
+
+  /// Updates book formatting preferences.
+  Future<void> updateBookFormatting(
+    String bookId, {
+    double? fontSize,
+    int? fontIndex,
+    int? lineSpacingIndex,
+    int? textAlignmentIndex,
+  }) async {
+    final index = _books.indexWhere((book) => book.id == bookId);
+    if (index != -1) {
+      _books[index] = _books[index].copyWith(
+        fontSize: fontSize,
+        fontIndex: fontIndex,
+        lineSpacingIndex: lineSpacingIndex,
+        textAlignmentIndex: textAlignmentIndex,
+      );
+      await _saveBooks();
+      // Don't notify listeners for formatting changes to avoid rebuilds
     }
   }
 
