@@ -49,11 +49,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
   // Flag to skip saving during initial CFI navigation
   bool _isInitialNavigation = true;
 
-  // Saved CFI to restore after epub loads
+  // Saved CFI to restore after epub loads (also used as loading indicator)
   String? _savedCfiToRestore;
-
-  // Show loading overlay until initial navigation completes
-  bool _isRestoringPosition = true;
 
   @override
   void initState() {
@@ -64,8 +61,16 @@ class _ReaderScreenState extends State<ReaderScreen> {
       context.read<ReaderNotifier>().setCurrentBook(widget.book);
       // Get fresh book data and store CFI to restore
       final freshBook = context.read<LibraryNotifier>().getBook(widget.book.id);
-      _savedCfiToRestore = freshBook?.lastReadCfi ?? widget.book.lastReadCfi;
+      setState(() {
+        _savedCfiToRestore = freshBook?.lastReadCfi ?? widget.book.lastReadCfi;
+      });
     });
+  }
+
+  @override
+  void dispose() {
+    _selectionNotifier.dispose();
+    super.dispose();
   }
 
   /// Applies all formatting settings to the epub viewer.
@@ -199,8 +204,6 @@ class _ReaderScreenState extends State<ReaderScreen> {
                     setState(() {
                       _isLocationLoaded = true;
                     });
-                    // Apply saved formatting settings after location is ready
-                    _applyFormattingSettings();
                   },
                   onEpubLoaded: () async {
                     if (!mounted) return;
@@ -221,11 +224,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
                       // Small delay for navigation to complete before hiding overlay
                       await Future.delayed(const Duration(milliseconds: 200));
                     }
-                    // Hide loading overlay
-                    if (mounted && _isRestoringPosition) {
-                      setState(() {
-                        _isRestoringPosition = false;
-                      });
+                    // Hide loading overlay by clearing the CFI
+                    if (mounted && _savedCfiToRestore == null) {
+                      setState(() {});
                     }
 
                     try {
@@ -276,7 +277,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
             ),
 
             // Loading overlay while restoring position
-            if (_isRestoringPosition)
+            if (_savedCfiToRestore != null)
               Positioned.fill(
                 child: Container(
                   color: Colors.white,
@@ -514,14 +515,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
   }
 
   void _showChaptersSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => ChaptersSheet(
+    _showSheet(
+      ChaptersSheet(
         onChapterSelected: (href) {
           Navigator.pop(context);
           _epubController.display(cfi: href);
@@ -531,17 +526,23 @@ class _ReaderScreenState extends State<ReaderScreen> {
   }
 
   void _showFontSettings() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => ReaderSettingsSheet(
+    _showSheet(
+      ReaderSettingsSheet(
         bookId: widget.book.id,
         onSettingsChanged: _applyFormattingSettings,
       ),
+    );
+  }
+
+  void _showSheet(Widget child) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => child,
     );
   }
 
