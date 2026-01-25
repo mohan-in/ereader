@@ -1,13 +1,15 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/book.dart';
 import '../notifiers/library_notifier.dart';
+import '../widgets/book_card.dart';
 import 'reader_screen.dart';
 
 /// Library screen displaying the user's book collection.
+///
+/// Shows a grid of books when the library has content, or a simple
+/// empty state prompting the user to add their first book.
 class LibraryScreen extends StatelessWidget {
   const LibraryScreen({super.key});
 
@@ -32,14 +34,14 @@ class LibraryScreen extends StatelessWidget {
           return _buildBookGrid(context, library.books);
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton(
         onPressed: () => context.read<LibraryNotifier>().addBookFromPicker(),
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Add Book'),
+        child: const Icon(Icons.add_rounded),
       ),
     );
   }
 
+  /// Displays an error message with an icon.
   Widget _buildErrorState(BuildContext context, String error) {
     return Center(
       child: Padding(
@@ -47,35 +49,22 @@ class LibraryScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.errorContainer.withValues(alpha: 0.3),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.error_outline_rounded,
-                size: 64,
-                color: Theme.of(context).colorScheme.error,
-              ),
+            Icon(
+              Icons.error_outline_rounded,
+              size: 64,
+              color: Theme.of(context).colorScheme.error,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             Text(
-              'Oops! Something went wrong',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+              'Something went wrong',
+              style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 8),
             Text(
               error,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.7),
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -84,6 +73,7 @@ class LibraryScreen extends StatelessWidget {
     );
   }
 
+  /// Simple empty state encouraging the user to add a book.
   Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: Padding(
@@ -91,107 +81,23 @@ class LibraryScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Animated book stack illustration
-            TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0.0, end: 1.0),
-              duration: const Duration(milliseconds: 800),
-              curve: Curves.easeOutBack,
-              builder: (context, value, child) {
-                return Transform.scale(scale: value, child: child);
-              },
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Background glow
-                  Container(
-                    width: 160,
-                    height: 160,
-                    decoration: BoxDecoration(
-                      gradient: RadialGradient(
-                        colors: [
-                          Theme.of(
-                            context,
-                          ).colorScheme.primary.withValues(alpha: 0.15),
-                          Theme.of(
-                            context,
-                          ).colorScheme.primary.withValues(alpha: 0.0),
-                        ],
-                      ),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  // Book stack
-                  Column(
-                    children: [
-                      Transform.rotate(
-                        angle: -0.1,
-                        child: _buildBookIcon(
-                          context,
-                          Theme.of(context).colorScheme.tertiary,
-                        ),
-                      ),
-                      Transform.translate(
-                        offset: const Offset(0, -20),
-                        child: Transform.rotate(
-                          angle: 0.05,
-                          child: _buildBookIcon(
-                            context,
-                            Theme.of(context).colorScheme.secondary,
-                          ),
-                        ),
-                      ),
-                      Transform.translate(
-                        offset: const Offset(0, -40),
-                        child: _buildBookIcon(
-                          context,
-                          Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+            Icon(
+              Icons.menu_book_rounded,
+              size: 80,
+              color: Theme.of(context).colorScheme.primary,
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
             Text(
-              'Your library awaits',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.5,
-              ),
+              'Your library is empty',
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Text(
-              'Add your first EPUB book to start\nyour reading journey',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.6),
-                height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 32),
-            // Animated arrow pointing to FAB
-            TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0.0, end: 1.0),
-              duration: const Duration(seconds: 2),
-              curve: Curves.easeInOut,
-              builder: (context, value, child) {
-                return Opacity(
-                  opacity: (value * 2).clamp(0.0, 1.0),
-                  child: Transform.translate(
-                    offset: Offset(0, 8 * (1 - value).abs()),
-                    child: child,
-                  ),
-                );
-              },
-              child: Icon(
-                Icons.south_east_rounded,
-                size: 32,
-                color: Theme.of(
-                  context,
-                ).colorScheme.primary.withValues(alpha: 0.5),
+              'Tap + to add your first EPUB book',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -200,31 +106,7 @@ class LibraryScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBookIcon(BuildContext context, Color color) {
-    return Container(
-      width: 60,
-      height: 80,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.4),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Center(
-        child: Icon(
-          Icons.auto_stories_rounded,
-          color: Colors.white.withValues(alpha: 0.9),
-          size: 28,
-        ),
-      ),
-    );
-  }
-
+  /// Grid layout displaying book cards.
   Widget _buildBookGrid(BuildContext context, List<Book> books) {
     return GridView.builder(
       padding: const EdgeInsets.all(16),
@@ -236,209 +118,19 @@ class LibraryScreen extends StatelessWidget {
       ),
       itemCount: books.length,
       itemBuilder: (context, index) {
-        return _BookCard(book: books[index], index: index);
+        final book = books[index];
+        return BookCard(
+          book: book,
+          index: index,
+          onTap: () => _openBook(context, book),
+          onLongPress: () => _showBookOptions(context, book),
+        );
       },
     );
   }
-}
 
-class _BookCard extends StatelessWidget {
-  final Book book;
-  final int index;
-
-  const _BookCard({required this.book, required this.index});
-
-  // Gradient combinations for book covers
-  static const List<List<Color>> _gradients = [
-    [Color(0xFF667eea), Color(0xFF764ba2)],
-    [Color(0xFFf093fb), Color(0xFFf5576c)],
-    [Color(0xFF4facfe), Color(0xFF00f2fe)],
-    [Color(0xFF43e97b), Color(0xFF38f9d7)],
-    [Color(0xFFfa709a), Color(0xFFfee140)],
-    [Color(0xFFa8edea), Color(0xFFfed6e3)],
-    [Color(0xFFffecd2), Color(0xFFfcb69f)],
-    [Color(0xFF667eea), Color(0xFF764ba2)],
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = _gradients[index % _gradients.length];
-
-    return GestureDetector(
-      onTap: () => _openBook(context),
-      onLongPress: () => _showBookOptions(context),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: colors[0].withValues(alpha: 0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Book cover
-              Expanded(
-                flex: 5,
-                child: book.coverPath != null
-                    ? Image.file(
-                        File(book.coverPath!),
-                        fit: BoxFit.fill,
-                        errorBuilder: (context, error, stackTrace) {
-                          return _buildPlaceholderCover(context, colors);
-                        },
-                      )
-                    : _buildPlaceholderCover(context, colors),
-              ),
-              // Book info
-              Expanded(
-                flex: 2,
-                child: Container(
-                  color: Theme.of(context).cardColor,
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        book.title,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          height: 1.2,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (book.author != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          book.author!,
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurface.withValues(alpha: 0.6),
-                              ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                      if (book.lastReadAt != null) ...[
-                        const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.schedule_rounded,
-                                size: 12,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                _formatLastRead(book.lastReadAt!),
-                                style: Theme.of(context).textTheme.labelSmall
-                                    ?.copyWith(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPlaceholderCover(BuildContext context, List<Color> colors) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: colors,
-        ),
-      ),
-      child: Stack(
-        children: [
-          // Decorative pattern
-          Positioned(
-            right: -20,
-            top: -20,
-            child: Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.1),
-              ),
-            ),
-          ),
-          Positioned(
-            left: -30,
-            bottom: -30,
-            child: Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withValues(alpha: 0.08),
-              ),
-            ),
-          ),
-          // Book icon
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.menu_book_rounded,
-                  size: 48,
-                  color: Colors.white.withValues(alpha: 0.9),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  width: 40,
-                  height: 3,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _openBook(BuildContext context) {
+  /// Opens the reader screen for the given book.
+  void _openBook(BuildContext context, Book book) {
     // Get fresh book from notifier to ensure latest reading position
     final freshBook = context.read<LibraryNotifier>().getBook(book.id) ?? book;
 
@@ -447,26 +139,15 @@ class _BookCard extends StatelessWidget {
         pageBuilder: (context, animation, secondaryAnimation) =>
             ReaderScreen(book: freshBook),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return FadeTransition(
-            opacity: animation,
-            child: SlideTransition(
-              position:
-                  Tween<Offset>(
-                    begin: const Offset(0, 0.05),
-                    end: Offset.zero,
-                  ).animate(
-                    CurvedAnimation(parent: animation, curve: Curves.easeOut),
-                  ),
-              child: child,
-            ),
-          );
+          return FadeTransition(opacity: animation, child: child);
         },
-        transitionDuration: const Duration(milliseconds: 300),
+        transitionDuration: const Duration(milliseconds: 200),
       ),
     );
   }
 
-  void _showBookOptions(BuildContext context) {
+  /// Shows options for the selected book (currently just delete).
+  void _showBookOptions(BuildContext context, Book book) {
     showModalBottomSheet(
       context: context,
       builder: (context) => SafeArea(
@@ -510,20 +191,5 @@ class _BookCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _formatLastRead(DateTime dateTime) {
-    final now = DateTime.now();
-    final diff = now.difference(dateTime);
-
-    if (diff.inDays > 0) {
-      return '${diff.inDays}d ago';
-    } else if (diff.inHours > 0) {
-      return '${diff.inHours}h ago';
-    } else if (diff.inMinutes > 0) {
-      return '${diff.inMinutes}m ago';
-    } else {
-      return 'Just now';
-    }
   }
 }

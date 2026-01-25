@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_epub_viewer/flutter_epub_viewer.dart';
 import 'package:provider/provider.dart';
 
@@ -10,6 +9,7 @@ import '../notifiers/library_notifier.dart';
 import '../notifiers/reader_notifier.dart';
 import '../widgets/chapters_sheet.dart';
 import '../widgets/reader_settings_sheet.dart';
+import '../widgets/text_selection_sheet.dart';
 
 /// EPUB reader screen with clean gesture handling.
 ///
@@ -474,94 +474,18 @@ class _ReaderScreenState extends State<ReaderScreen> {
   }
 
   void _showTextSelectionMenu() {
+    final selection = _selectionNotifier.value;
+    if (selection == null) return;
+
     _isSelectionMenuOpen = true;
-    showModalBottomSheet(
+    TextSelectionSheet.show(
       context: context,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => ValueListenableBuilder<EpubTextSelection?>(
-        valueListenable: _selectionNotifier,
-        builder: (context, selection, child) {
-          if (selection == null) return const SizedBox.shrink();
-
-          return Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Handle
-                Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[400],
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-
-                // Selected text preview
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    '"${selection.selectedText}"',
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontStyle: FontStyle.italic),
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                // Actions
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        icon: const Icon(Icons.highlight, color: Colors.orange),
-                        label: const Text('Highlight'),
-                        onPressed: () {
-                          Navigator.pop(context);
-                          if (selection.selectionCfi.isNotEmpty) {
-                            _epubController.addHighlight(
-                              cfi: selection.selectionCfi,
-                              color: Colors.yellow,
-                            );
-                          }
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        icon: const Icon(Icons.copy),
-                        label: const Text('Copy'),
-                        onPressed: () {
-                          Navigator.pop(context);
-                          Clipboard.setData(
-                            ClipboardData(text: selection.selectedText),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 8),
-              ],
-            ),
-          );
-        },
-      ),
-    ).whenComplete(() {
-      _isSelectionMenuOpen = false;
-      _selectionNotifier.value = null;
-    });
+      selection: selection,
+      epubController: _epubController,
+      onDismiss: () {
+        _isSelectionMenuOpen = false;
+        _selectionNotifier.value = null;
+      },
+    );
   }
 }

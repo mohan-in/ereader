@@ -11,8 +11,7 @@ void main() {
     await tester.pumpWidget(const EReaderApp());
 
     // Verify library screen is displayed
-    expect(find.text('My Library'), findsOneWidget);
-    expect(find.text('Add Book'), findsOneWidget);
+    expect(find.text('Library'), findsOneWidget);
   });
 
   testWidgets('Empty state is shown when no books', (
