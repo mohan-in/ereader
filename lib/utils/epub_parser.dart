@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:archive/archive.dart';
 import 'package:path_provider/path_provider.dart';
@@ -41,7 +42,10 @@ class EpubParser {
       }
 
       if (opfFile != null) {
-        final opfContent = String.fromCharCodes(opfFile.content as List<int>);
+        final opfContent = utf8.decode(
+          opfFile.content as List<int>,
+          allowMalformed: true,
+        );
 
         try {
           final document = XmlDocument.parse(opfContent);

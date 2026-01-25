@@ -15,7 +15,23 @@ class LibraryNotifier extends ChangeNotifier {
   String? _error;
   bool _initialized = false;
 
-  List<Book> get books => List.unmodifiable(_books);
+  List<Book> get books {
+    final sorted = List<Book>.from(_books);
+    sorted.sort((a, b) {
+      // Books with lastReadAt come first, sorted by most recent
+      if (a.lastReadAt != null && b.lastReadAt != null) {
+        return b.lastReadAt!.compareTo(a.lastReadAt!);
+      } else if (a.lastReadAt != null) {
+        return -1; // a has been read, b hasn't -> a comes first
+      } else if (b.lastReadAt != null) {
+        return 1; // b has been read, a hasn't -> b comes first
+      }
+      // Both unread: sort by title
+      return a.title.compareTo(b.title);
+    });
+    return List.unmodifiable(sorted);
+  }
+
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get initialized => _initialized;

@@ -70,15 +70,42 @@ class _ReaderScreenState extends State<ReaderScreen> {
       );
     }
 
-    // Apply line spacing and text alignment using override
+    // Apply line spacing and text alignment using epub.js hooks
+    // This ensures styles are applied to every page as it loads
     final lineHeight = reader.lineSpacing.value;
     final textAlign = reader.textAlignment.cssValue;
 
+    // Register a hook that applies styles to each page as it renders
+    // Also apply immediately to current content
     _epubController.webViewController?.evaluateJavascript(
-      source: 'rendition.themes.override("line-height", "$lineHeight", true)',
-    );
-    _epubController.webViewController?.evaluateJavascript(
-      source: 'rendition.themes.override("text-align", "$textAlign", true)',
+      source:
+          '''
+        (function() {
+          var css = '* { line-height: $lineHeight !important; } p, div, span, li, td, th, blockquote, pre { line-height: $lineHeight !important; text-align: $textAlign !important; }';
+          
+          // Register hook for future page loads (re-register overwrites previous)
+          if (typeof rendition !== 'undefined' && rendition.hooks) {
+            rendition.hooks.content.register(function(contents) {
+              contents.addStylesheetRules([
+                ['*', ['line-height', '$lineHeight', true]],
+                ['p, div, span, li, td, th, blockquote, pre', ['line-height', '$lineHeight', true]],
+                ['p, div, span, li, td, th, blockquote, pre', ['text-align', '$textAlign', true]]
+              ]);
+            });
+          }
+          
+          // Apply immediately to current page
+          if (typeof rendition !== 'undefined' && rendition.getContents) {
+            rendition.getContents().forEach(function(contents) {
+              contents.addStylesheetRules([
+                ['*', ['line-height', '$lineHeight', true]],
+                ['p, div, span, li, td, th, blockquote, pre', ['line-height', '$lineHeight', true]],
+                ['p, div, span, li, td, th, blockquote, pre', ['text-align', '$textAlign', true]]
+              ]);
+            });
+          }
+        })()
+      ''',
     );
 
     // Add padding to bottom to make room for progress footer

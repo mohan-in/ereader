@@ -10,9 +10,14 @@ import 'reader_screen.dart';
 ///
 /// Shows a grid of books when the library has content, or a simple
 /// empty state prompting the user to add their first book.
-class LibraryScreen extends StatelessWidget {
+class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
 
+  @override
+  State<LibraryScreen> createState() => _LibraryScreenState();
+}
+
+class _LibraryScreenState extends State<LibraryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -134,16 +139,22 @@ class LibraryScreen extends StatelessWidget {
     // Get fresh book from notifier to ensure latest reading position
     final freshBook = context.read<LibraryNotifier>().getBook(book.id) ?? book;
 
-    Navigator.of(context).push(
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            ReaderScreen(book: freshBook),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return FadeTransition(opacity: animation, child: child);
-        },
-        transitionDuration: const Duration(milliseconds: 200),
-      ),
-    );
+    Navigator.of(context)
+        .push(
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                ReaderScreen(book: freshBook),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+                  return FadeTransition(opacity: animation, child: child);
+                },
+            transitionDuration: const Duration(milliseconds: 200),
+          ),
+        )
+        .then((_) {
+          // Trigger rebuild to show updated sort order
+          if (mounted) setState(() {});
+        });
   }
 
   /// Shows options for the selected book (currently just delete).

@@ -5,7 +5,7 @@ class AppTheme {
   AppTheme._();
 
   // Custom color palette - clean, modern blue tones for a reading app
-  static const Color _primaryColor = Color(0xFF2196F3); // Blue
+  static const Color _primaryColor = Color(0xFF1565C0); // Blue
   static const Color _secondaryColor = Color(0xFF1976D2); // Darker blue
   static const Color _tertiaryColor = Color(0xFF03A9F4); // Light blue
 
