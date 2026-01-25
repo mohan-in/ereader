@@ -112,23 +112,35 @@ class _LibraryScreenState extends State<LibraryScreen> {
   }
 
   /// Grid layout displaying book cards.
+  /// Adapts column count based on screen width for DeX and tablet support.
   Widget _buildBookGrid(BuildContext context, List<Book> books) {
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.55,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-      ),
-      itemCount: books.length,
-      itemBuilder: (context, index) {
-        final book = books[index];
-        return BookCard(
-          book: book,
-          index: index,
-          onTap: () => _openBook(context, book),
-          onLongPress: () => _showBookOptions(context, book),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Calculate optimal columns based on available width
+        // Minimum card width of 180dp, maximum of 6 columns
+        const minCardWidth = 180.0;
+        const spacing = 16.0;
+        final availableWidth = constraints.maxWidth - (spacing * 2);
+        final columns = (availableWidth / minCardWidth).floor().clamp(2, 6);
+
+        return GridView.builder(
+          padding: const EdgeInsets.all(16),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            childAspectRatio: 0.55,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+          ),
+          itemCount: books.length,
+          itemBuilder: (context, index) {
+            final book = books[index];
+            return BookCard(
+              book: book,
+              index: index,
+              onTap: () => _openBook(context, book),
+              onLongPress: () => _showBookOptions(context, book),
+            );
+          },
         );
       },
     );

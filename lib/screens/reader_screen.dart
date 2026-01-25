@@ -1,6 +1,8 @@
 import 'dart:io';
+import 'dart:ui' show PointerDeviceKind;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_epub_viewer/flutter_epub_viewer.dart';
 import 'package:provider/provider.dart';
 
@@ -154,175 +156,223 @@ class _ReaderScreenState extends State<ReaderScreen> {
     }
   }
 
+  /// Handles keyboard input for DeX/desktop navigation.
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+    final reader = context.read<ReaderNotifier>();
+
+    switch (event.logicalKey) {
+      case LogicalKeyboardKey.arrowLeft:
+      case LogicalKeyboardKey.pageUp:
+        _epubController.prev();
+        return KeyEventResult.handled;
+      case LogicalKeyboardKey.arrowRight:
+      case LogicalKeyboardKey.pageDown:
+      case LogicalKeyboardKey.space:
+        _epubController.next();
+        return KeyEventResult.handled;
+      case LogicalKeyboardKey.escape:
+        Navigator.pop(context);
+        return KeyEventResult.handled;
+      case LogicalKeyboardKey.equal: // + key
+      case LogicalKeyboardKey.add:
+        reader.increaseFontSize();
+        _applyFormattingSettings();
+        return KeyEventResult.handled;
+      case LogicalKeyboardKey.minus:
+        reader.decreaseFontSize();
+        _applyFormattingSettings();
+        return KeyEventResult.handled;
+      default:
+        return KeyEventResult.ignored;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            // EPUB Viewer - tap left/right edges for page navigation
-            Positioned.fill(
-              child: Listener(
-                onPointerDown: (e) {
-                  _pointerStartX = e.position.dx;
-                  _pointerStartY = e.position.dy;
-                  _isSwipeGesture = false;
-                },
-                onPointerMove: (e) {
-                  if (!_isSwipeGesture) {
-                    final dx = (e.position.dx - _pointerStartX).abs();
-                    final dy = (e.position.dy - _pointerStartY).abs();
-                    if (dx > 10 || dy > 10) {
-                      _isSwipeGesture = true;
-                    }
-                  }
-                },
-                child: EpubViewer(
-                  epubSource: EpubSource.fromFile(File(widget.book.filePath)),
-                  epubController: _epubController,
-                  // Note: initialCfi not reliable, we navigate manually in onEpubLoaded
-                  displaySettings: EpubDisplaySettings(
-                    flow: EpubFlow.paginated,
-                    snap: true,
-                    allowScriptedContent: true,
-                  ),
-                  onChaptersLoaded: (chapters) {
-                    if (!mounted) return;
-                    context.read<ReaderNotifier>().setChapters(chapters);
+    return Focus(
+      autofocus: true,
+      onKeyEvent: _handleKeyEvent,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Stack(
+            children: [
+              // EPUB Viewer - tap left/right edges for page navigation
+              Positioned.fill(
+                child: Listener(
+                  onPointerDown: (e) {
+                    _pointerStartX = e.position.dx;
+                    _pointerStartY = e.position.dy;
+                    _isSwipeGesture = false;
                   },
-                  onLocationLoaded: () {
-                    // Progress tracking is now available
-                    setState(() {
-                      _isLocationLoaded = true;
-                    });
-                  },
-                  onEpubLoaded: () async {
-                    if (!mounted) return;
-                    context.read<ReaderNotifier>().setLoading(false);
-
-                    // Apply formatting immediately when epub loads
-                    _applyFormattingSettings();
-
-                    // Navigate to saved position with a delay to ensure WebView is ready
-                    if (_savedCfiToRestore != null &&
-                        _savedCfiToRestore!.isNotEmpty) {
-                      final cfiToNavigate = _savedCfiToRestore!;
-                      _savedCfiToRestore =
-                          null; // Clear to prevent re-navigation
-                      await Future.delayed(const Duration(milliseconds: 500));
-                      if (!mounted) return;
-                      _epubController.display(cfi: cfiToNavigate);
-                      // Small delay for navigation to complete before hiding overlay
-                      await Future.delayed(const Duration(milliseconds: 200));
-                    }
-                    // Hide loading overlay by clearing the CFI
-                    if (mounted && _savedCfiToRestore == null) {
-                      setState(() {});
-                    }
-
-                    try {
-                      final metadata = await _epubController.getMetadata();
-                      if (!mounted) return;
-                      // ignore: use_build_context_synchronously
-                      context.read<LibraryNotifier>().updateBookMetadata(
-                        widget.book.id,
-                        title: metadata.title,
-                        author: metadata.author,
-                      );
-                    } catch (e) {
-                      debugPrint('Failed to load metadata: $e');
-                    }
-                  },
-                  onRelocated: (location) {
-                    // Only process relocation after initial load is complete
-                    // Prevents overwriting persisted progress with 0.0 during initialization
-                    if (!mounted || !_isLocationLoaded) return;
-
-                    // Skip the first relocation event to allow initialCfi navigation to complete
-                    if (_isInitialNavigation) {
-                      _isInitialNavigation = false;
-                      return;
-                    }
-
-                    context.read<ReaderNotifier>().setCurrentLocation(location);
-                    context.read<LibraryNotifier>().updateReadingProgress(
-                      widget.book.id,
-                      location.startCfi,
-                      progress: location.progress,
-                    );
-                  },
-                  onTextSelected: (selection) {
-                    if (selection.selectedText.isNotEmpty) {
-                      _selectionNotifier.value = selection;
-                      if (!_isSelectionMenuOpen) {
-                        _showTextSelectionMenu();
+                  onPointerMove: (e) {
+                    if (!_isSwipeGesture) {
+                      final dx = (e.position.dx - _pointerStartX).abs();
+                      final dy = (e.position.dy - _pointerStartY).abs();
+                      if (dx > 10 || dy > 10) {
+                        _isSwipeGesture = true;
                       }
                     }
                   },
-                  onTouchUp: (x, y) {
-                    if (_isSwipeGesture) return; // Ignore tap if user swiped
-                    _handleTouch(x, y);
+                  // Handle mouse clicks for DeX - onTouchUp only fires for touch
+                  onPointerUp: (e) {
+                    if (e.kind == PointerDeviceKind.mouse && !_isSwipeGesture) {
+                      final size = MediaQuery.of(context).size;
+                      final normalizedX = e.position.dx / size.width;
+                      final normalizedY = e.position.dy / size.height;
+                      _handleTouch(normalizedX, normalizedY);
+                    }
                   },
+                  child: EpubViewer(
+                    epubSource: EpubSource.fromFile(File(widget.book.filePath)),
+                    epubController: _epubController,
+                    // Note: initialCfi not reliable, we navigate manually in onEpubLoaded
+                    displaySettings: EpubDisplaySettings(
+                      flow: EpubFlow.paginated,
+                      snap: true,
+                      allowScriptedContent: true,
+                    ),
+                    onChaptersLoaded: (chapters) {
+                      if (!mounted) return;
+                      context.read<ReaderNotifier>().setChapters(chapters);
+                    },
+                    onLocationLoaded: () {
+                      // Progress tracking is now available
+                      setState(() {
+                        _isLocationLoaded = true;
+                      });
+                    },
+                    onEpubLoaded: () async {
+                      if (!mounted) return;
+                      context.read<ReaderNotifier>().setLoading(false);
+
+                      // Apply formatting immediately when epub loads
+                      _applyFormattingSettings();
+
+                      // Navigate to saved position with a delay to ensure WebView is ready
+                      if (_savedCfiToRestore != null &&
+                          _savedCfiToRestore!.isNotEmpty) {
+                        final cfiToNavigate = _savedCfiToRestore!;
+                        _savedCfiToRestore =
+                            null; // Clear to prevent re-navigation
+                        await Future.delayed(const Duration(milliseconds: 500));
+                        if (!mounted) return;
+                        _epubController.display(cfi: cfiToNavigate);
+                        // Small delay for navigation to complete before hiding overlay
+                        await Future.delayed(const Duration(milliseconds: 200));
+                      }
+                      // Hide loading overlay by clearing the CFI
+                      if (mounted && _savedCfiToRestore == null) {
+                        setState(() {});
+                      }
+
+                      try {
+                        final metadata = await _epubController.getMetadata();
+                        if (!mounted) return;
+                        // ignore: use_build_context_synchronously
+                        context.read<LibraryNotifier>().updateBookMetadata(
+                          widget.book.id,
+                          title: metadata.title,
+                          author: metadata.author,
+                        );
+                      } catch (e) {
+                        debugPrint('Failed to load metadata: $e');
+                      }
+                    },
+                    onRelocated: (location) {
+                      // Only process relocation after initial load is complete
+                      // Prevents overwriting persisted progress with 0.0 during initialization
+                      if (!mounted || !_isLocationLoaded) return;
+
+                      // Skip the first relocation event to allow initialCfi navigation to complete
+                      if (_isInitialNavigation) {
+                        _isInitialNavigation = false;
+                        return;
+                      }
+
+                      context.read<ReaderNotifier>().setCurrentLocation(
+                        location,
+                      );
+                      context.read<LibraryNotifier>().updateReadingProgress(
+                        widget.book.id,
+                        location.startCfi,
+                        progress: location.progress,
+                      );
+                    },
+                    onTextSelected: (selection) {
+                      if (selection.selectedText.isNotEmpty) {
+                        _selectionNotifier.value = selection;
+                        if (!_isSelectionMenuOpen) {
+                          _showTextSelectionMenu();
+                        }
+                      }
+                    },
+                    onTouchUp: (x, y) {
+                      if (_isSwipeGesture) return; // Ignore tap if user swiped
+                      _handleTouch(x, y);
+                    },
+                  ),
                 ),
               ),
-            ),
 
-            // Loading overlay while restoring position
-            if (_savedCfiToRestore != null)
-              Positioned.fill(
-                child: Container(
-                  color: Colors.white,
-                  child: const Center(child: CircularProgressIndicator()),
+              // Loading overlay while restoring position
+              if (_savedCfiToRestore != null)
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.white,
+                    child: const Center(child: CircularProgressIndicator()),
+                  ),
                 ),
-              ),
 
-            // Progress Footer
-            if ((_isLocationLoaded || widget.book.progress > 0) &&
-                !_showControls)
-              Positioned(
-                right: 16,
-                bottom: 8,
-                child: Consumer<ReaderNotifier>(
-                  builder: (context, reader, child) {
-                    final progress =
-                        reader.currentLocation?.progress ??
-                        widget.book.progress;
-                    return Text(
-                      '${(progress * 100).toStringAsFixed(0)}%',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.black54,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    );
-                  },
+              // Progress Footer
+              if ((_isLocationLoaded || widget.book.progress > 0) &&
+                  !_showControls)
+                Positioned(
+                  right: 16,
+                  bottom: 8,
+                  child: Consumer<ReaderNotifier>(
+                    builder: (context, reader, child) {
+                      final progress =
+                          reader.currentLocation?.progress ??
+                          widget.book.progress;
+                      return Text(
+                        '${(progress * 100).toStringAsFixed(0)}%',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.black54,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      );
+                    },
+                  ),
                 ),
-              ),
 
-            // Controls overlay - only visible when _showControls is true
-            if (_showControls) ...[
-              // Dismiss overlay when tapping outside controls
-              Positioned.fill(
-                child: GestureDetector(
-                  onTap: _toggleControls,
-                  behavior: HitTestBehavior.translucent,
-                  child: Container(color: Colors.transparent),
+              // Controls overlay - only visible when _showControls is true
+              if (_showControls) ...[
+                // Dismiss overlay when tapping outside controls
+                Positioned.fill(
+                  child: GestureDetector(
+                    onTap: _toggleControls,
+                    behavior: HitTestBehavior.translucent,
+                    child: Container(color: Colors.transparent),
+                  ),
                 ),
-              ),
 
-              // Top bar
-              Positioned(top: 0, left: 0, right: 0, child: _buildTopBar()),
+                // Top bar
+                Positioned(top: 0, left: 0, right: 0, child: _buildTopBar()),
 
-              // Bottom bar with seek
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: _buildBottomBar(),
-              ),
+                // Bottom bar with seek
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: _buildBottomBar(),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
