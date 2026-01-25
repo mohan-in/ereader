@@ -46,6 +46,15 @@ class _ReaderScreenState extends State<ReaderScreen> {
   );
   bool _isSelectionMenuOpen = false;
 
+  // Flag to skip saving during initial CFI navigation
+  bool _isInitialNavigation = true;
+
+  // Saved CFI to restore after epub loads
+  String? _savedCfiToRestore;
+
+  // Show loading overlay until initial navigation completes
+  bool _isRestoringPosition = true;
+
   @override
   void initState() {
     super.initState();
@@ -53,6 +62,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ReaderNotifier>().setCurrentBook(widget.book);
+      // Get fresh book data and store CFI to restore
+      final freshBook = context.read<LibraryNotifier>().getBook(widget.book.id);
+      _savedCfiToRestore = freshBook?.lastReadCfi ?? widget.book.lastReadCfi;
     });
   }
 
@@ -172,7 +184,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                 child: EpubViewer(
                   epubSource: EpubSource.fromFile(File(widget.book.filePath)),
                   epubController: _epubController,
-                  initialCfi: widget.book.lastReadCfi,
+                  // Note: initialCfi not reliable, we navigate manually in onEpubLoaded
                   displaySettings: EpubDisplaySettings(
                     flow: EpubFlow.paginated,
                     snap: true,
@@ -197,6 +209,25 @@ class _ReaderScreenState extends State<ReaderScreen> {
                     // Apply formatting immediately when epub loads
                     _applyFormattingSettings();
 
+                    // Navigate to saved position with a delay to ensure WebView is ready
+                    if (_savedCfiToRestore != null &&
+                        _savedCfiToRestore!.isNotEmpty) {
+                      final cfiToNavigate = _savedCfiToRestore!;
+                      _savedCfiToRestore =
+                          null; // Clear to prevent re-navigation
+                      await Future.delayed(const Duration(milliseconds: 500));
+                      if (!mounted) return;
+                      _epubController.display(cfi: cfiToNavigate);
+                      // Small delay for navigation to complete before hiding overlay
+                      await Future.delayed(const Duration(milliseconds: 200));
+                    }
+                    // Hide loading overlay
+                    if (mounted && _isRestoringPosition) {
+                      setState(() {
+                        _isRestoringPosition = false;
+                      });
+                    }
+
                     try {
                       final metadata = await _epubController.getMetadata();
                       if (!mounted) return;
@@ -215,6 +246,12 @@ class _ReaderScreenState extends State<ReaderScreen> {
                     // Prevents overwriting persisted progress with 0.0 during initialization
                     if (!mounted || !_isLocationLoaded) return;
 
+                    // Skip the first relocation event to allow initialCfi navigation to complete
+                    if (_isInitialNavigation) {
+                      _isInitialNavigation = false;
+                      return;
+                    }
+
                     context.read<ReaderNotifier>().setCurrentLocation(location);
                     context.read<LibraryNotifier>().updateReadingProgress(
                       widget.book.id,
@@ -230,7 +267,6 @@ class _ReaderScreenState extends State<ReaderScreen> {
                       }
                     }
                   },
-                  // Touch callback for tap zones
                   onTouchUp: (x, y) {
                     if (_justSwiped) return;
                     _handleTouch(x, y);
@@ -238,6 +274,15 @@ class _ReaderScreenState extends State<ReaderScreen> {
                 ),
               ),
             ),
+
+            // Loading overlay while restoring position
+            if (_isRestoringPosition)
+              Positioned.fill(
+                child: Container(
+                  color: Colors.white,
+                  child: const Center(child: CircularProgressIndicator()),
+                ),
+              ),
 
             // Progress Footer
             if ((_isLocationLoaded || widget.book.progress > 0) &&
