@@ -34,11 +34,11 @@ class _ReaderScreenState extends State<ReaderScreen> {
   // Slider state for smooth dragging
   bool _isDraggingSlider = false;
   double _sliderValue = 0.0;
-
   // Swipe detection
-  double _swipeStartX = 0.0;
-  double _swipeStartY = 0.0;
-  bool _justSwiped = false;
+  // Disabled as per user request to prevent double page turns
+
+  // Debounce page turns to prevent double-firing
+  DateTime _lastPageTurnTime = DateTime.fromMillisecondsSinceEpoch(0);
 
   // Selection state
   final ValueNotifier<EpubTextSelection?> _selectionNotifier = ValueNotifier(
@@ -140,11 +140,25 @@ class _ReaderScreenState extends State<ReaderScreen> {
   void _handleTouch(double normalizedX, double normalizedY) {
     // normalizedX is 0.0 to 1.0 across the screen width
     if (normalizedX < 0.25) {
-      _epubController.prev();
+      _changePage(false);
     } else if (normalizedX > 0.75) {
-      _epubController.next();
+      _changePage(true);
     } else {
       _toggleControls();
+    }
+  }
+
+  void _changePage(bool isNext) {
+    final now = DateTime.now();
+    if (now.difference(_lastPageTurnTime) < const Duration(milliseconds: 300)) {
+      return;
+    }
+    _lastPageTurnTime = now;
+
+    if (isNext) {
+      _epubController.next();
+    } else {
+      _epubController.prev();
     }
   }
 
@@ -161,118 +175,92 @@ class _ReaderScreenState extends State<ReaderScreen> {
       body: SafeArea(
         child: Stack(
           children: [
-            // EPUB Viewer - takes full screen, handles its own gestures
+            // EPUB Viewer - handles its own horizontal swipe gestures via epub.js
             Positioned.fill(
-              child: Listener(
-                onPointerDown: (e) {
-                  _swipeStartX = e.position.dx;
-                  _swipeStartY = e.position.dy;
+              child: EpubViewer(
+                epubSource: EpubSource.fromFile(File(widget.book.filePath)),
+                epubController: _epubController,
+                // Note: initialCfi not reliable, we navigate manually in onEpubLoaded
+                displaySettings: EpubDisplaySettings(
+                  flow: EpubFlow.paginated,
+                  snap: true,
+                  allowScriptedContent: true,
+                ),
+                onChaptersLoaded: (chapters) {
+                  if (!mounted) return;
+                  context.read<ReaderNotifier>().setChapters(chapters);
                 },
-                onPointerUp: (e) {
-                  final deltaX = e.position.dx - _swipeStartX;
-                  final deltaY = e.position.dy - _swipeStartY;
-                  // Horizontal swipe (significant X movement, minimal Y movement)
-                  if (deltaX.abs() > 50 && deltaY.abs() < 50) {
-                    _justSwiped = true;
-                    // Reset flag after a short delay to allow JS event to fire and be ignored
-                    Future.delayed(const Duration(milliseconds: 300), () {
-                      if (mounted) _justSwiped = false;
-                    });
+                onLocationLoaded: () {
+                  // Progress tracking is now available
+                  setState(() {
+                    _isLocationLoaded = true;
+                  });
+                },
+                onEpubLoaded: () async {
+                  if (!mounted) return;
+                  context.read<ReaderNotifier>().setLoading(false);
 
-                    if (deltaX > 0) {
-                      _epubController.prev();
-                    } else {
-                      _epubController.next();
+                  // Apply formatting immediately when epub loads
+                  _applyFormattingSettings();
+
+                  // Navigate to saved position with a delay to ensure WebView is ready
+                  if (_savedCfiToRestore != null &&
+                      _savedCfiToRestore!.isNotEmpty) {
+                    final cfiToNavigate = _savedCfiToRestore!;
+                    _savedCfiToRestore = null; // Clear to prevent re-navigation
+                    await Future.delayed(const Duration(milliseconds: 500));
+                    if (!mounted) return;
+                    _epubController.display(cfi: cfiToNavigate);
+                    // Small delay for navigation to complete before hiding overlay
+                    await Future.delayed(const Duration(milliseconds: 200));
+                  }
+                  // Hide loading overlay by clearing the CFI
+                  if (mounted && _savedCfiToRestore == null) {
+                    setState(() {});
+                  }
+
+                  try {
+                    final metadata = await _epubController.getMetadata();
+                    if (!mounted) return;
+                    // ignore: use_build_context_synchronously
+                    context.read<LibraryNotifier>().updateBookMetadata(
+                      widget.book.id,
+                      title: metadata.title,
+                      author: metadata.author,
+                    );
+                  } catch (e) {
+                    debugPrint('Failed to load metadata: $e');
+                  }
+                },
+                onRelocated: (location) {
+                  // Only process relocation after initial load is complete
+                  // Prevents overwriting persisted progress with 0.0 during initialization
+                  if (!mounted || !_isLocationLoaded) return;
+
+                  // Skip the first relocation event to allow initialCfi navigation to complete
+                  if (_isInitialNavigation) {
+                    _isInitialNavigation = false;
+                    return;
+                  }
+
+                  context.read<ReaderNotifier>().setCurrentLocation(location);
+                  context.read<LibraryNotifier>().updateReadingProgress(
+                    widget.book.id,
+                    location.startCfi,
+                    progress: location.progress,
+                  );
+                },
+                onTextSelected: (selection) {
+                  if (selection.selectedText.isNotEmpty) {
+                    _selectionNotifier.value = selection;
+                    if (!_isSelectionMenuOpen) {
+                      _showTextSelectionMenu();
                     }
                   }
                 },
-                child: EpubViewer(
-                  epubSource: EpubSource.fromFile(File(widget.book.filePath)),
-                  epubController: _epubController,
-                  // Note: initialCfi not reliable, we navigate manually in onEpubLoaded
-                  displaySettings: EpubDisplaySettings(
-                    flow: EpubFlow.paginated,
-                    snap: true,
-                    allowScriptedContent: true,
-                  ),
-                  onChaptersLoaded: (chapters) {
-                    if (!mounted) return;
-                    context.read<ReaderNotifier>().setChapters(chapters);
-                  },
-                  onLocationLoaded: () {
-                    // Progress tracking is now available
-                    setState(() {
-                      _isLocationLoaded = true;
-                    });
-                  },
-                  onEpubLoaded: () async {
-                    if (!mounted) return;
-                    context.read<ReaderNotifier>().setLoading(false);
-
-                    // Apply formatting immediately when epub loads
-                    _applyFormattingSettings();
-
-                    // Navigate to saved position with a delay to ensure WebView is ready
-                    if (_savedCfiToRestore != null &&
-                        _savedCfiToRestore!.isNotEmpty) {
-                      final cfiToNavigate = _savedCfiToRestore!;
-                      _savedCfiToRestore =
-                          null; // Clear to prevent re-navigation
-                      await Future.delayed(const Duration(milliseconds: 500));
-                      if (!mounted) return;
-                      _epubController.display(cfi: cfiToNavigate);
-                      // Small delay for navigation to complete before hiding overlay
-                      await Future.delayed(const Duration(milliseconds: 200));
-                    }
-                    // Hide loading overlay by clearing the CFI
-                    if (mounted && _savedCfiToRestore == null) {
-                      setState(() {});
-                    }
-
-                    try {
-                      final metadata = await _epubController.getMetadata();
-                      if (!mounted) return;
-                      // ignore: use_build_context_synchronously
-                      context.read<LibraryNotifier>().updateBookMetadata(
-                        widget.book.id,
-                        title: metadata.title,
-                        author: metadata.author,
-                      );
-                    } catch (e) {
-                      debugPrint('Failed to load metadata: $e');
-                    }
-                  },
-                  onRelocated: (location) {
-                    // Only process relocation after initial load is complete
-                    // Prevents overwriting persisted progress with 0.0 during initialization
-                    if (!mounted || !_isLocationLoaded) return;
-
-                    // Skip the first relocation event to allow initialCfi navigation to complete
-                    if (_isInitialNavigation) {
-                      _isInitialNavigation = false;
-                      return;
-                    }
-
-                    context.read<ReaderNotifier>().setCurrentLocation(location);
-                    context.read<LibraryNotifier>().updateReadingProgress(
-                      widget.book.id,
-                      location.startCfi,
-                      progress: location.progress,
-                    );
-                  },
-                  onTextSelected: (selection) {
-                    if (selection.selectedText.isNotEmpty) {
-                      _selectionNotifier.value = selection;
-                      if (!_isSelectionMenuOpen) {
-                        _showTextSelectionMenu();
-                      }
-                    }
-                  },
-                  onTouchUp: (x, y) {
-                    if (_justSwiped) return;
-                    _handleTouch(x, y);
-                  },
-                ),
+                onTouchUp: (x, y) {
+                  _handleTouch(x, y);
+                },
               ),
             ),
 
