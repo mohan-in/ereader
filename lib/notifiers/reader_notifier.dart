@@ -41,6 +41,19 @@ enum TextAlignment {
   const TextAlignment(this.displayName, this.cssValue);
 }
 
+/// Reader theme options (background and text colors).
+enum ReaderTheme {
+  white('White', '#FFFFFF', '#000000'),
+  sepia('Sepia', '#F4ECD8', '#5B4636'),
+  dark('Dark', '#1A1A1A', '#E0E0E0');
+
+  final String displayName;
+  final String backgroundColor;
+  final String textColor;
+
+  const ReaderTheme(this.displayName, this.backgroundColor, this.textColor);
+}
+
 /// Manages the EPUB reader state.
 class ReaderNotifier extends ChangeNotifier {
   Book? _currentBook;
@@ -51,6 +64,7 @@ class ReaderNotifier extends ChangeNotifier {
   ReaderFont _font = ReaderFont.bookDefault;
   LineSpacing _lineSpacing = LineSpacing.normal;
   TextAlignment _textAlignment = TextAlignment.justify;
+  ReaderTheme _theme = ReaderTheme.white;
   String? _error;
 
   Book? get currentBook => _currentBook;
@@ -61,6 +75,7 @@ class ReaderNotifier extends ChangeNotifier {
   ReaderFont get font => _font;
   LineSpacing get lineSpacing => _lineSpacing;
   TextAlignment get textAlignment => _textAlignment;
+  ReaderTheme get theme => _theme;
   String? get error => _error;
 
   /// Sets the current book to read and loads its formatting preferences.
@@ -134,6 +149,12 @@ class ReaderNotifier extends ChangeNotifier {
   /// Sets the text alignment.
   void setTextAlignment(TextAlignment alignment) {
     _textAlignment = alignment;
+    notifyListeners();
+  }
+
+  /// Sets the reader theme.
+  void setTheme(ReaderTheme theme) {
+    _theme = theme;
     notifyListeners();
   }
 

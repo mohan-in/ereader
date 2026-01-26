@@ -89,10 +89,11 @@ class _ReaderScreenState extends State<ReaderScreen> {
       );
     }
 
-    // Apply line spacing and text alignment using epub.js hooks
-    // This ensures styles are applied to every page as it loads
+    // Apply line spacing, text alignment, and theme colors
     final lineHeight = reader.lineSpacing.value;
     final textAlign = reader.textAlignment.cssValue;
+    final bgColor = reader.theme.backgroundColor;
+    final textColor = reader.theme.textColor;
 
     // Register a hook that applies styles to each page as it renders
     // Also apply immediately to current content
@@ -100,15 +101,16 @@ class _ReaderScreenState extends State<ReaderScreen> {
       source:
           '''
         (function() {
-          var css = '* { line-height: $lineHeight !important; } p, div, span, li, td, th, blockquote, pre { line-height: $lineHeight !important; text-align: $textAlign !important; }';
-          
           // Register hook for future page loads (re-register overwrites previous)
           if (typeof rendition !== 'undefined' && rendition.hooks) {
             rendition.hooks.content.register(function(contents) {
               contents.addStylesheetRules([
                 ['*', ['line-height', '$lineHeight', true]],
+                ['*', ['color', '$textColor', true]],
+                ['body', ['background-color', '$bgColor', true]],
                 ['p, div, span, li, td, th, blockquote, pre', ['line-height', '$lineHeight', true]],
-                ['p, div, span, li, td, th, blockquote, pre', ['text-align', '$textAlign', true]]
+                ['p, div, span, li, td, th, blockquote, pre', ['text-align', '$textAlign', true]],
+                ['a', ['color', '$textColor', true]]
               ]);
             });
           }
@@ -118,8 +120,11 @@ class _ReaderScreenState extends State<ReaderScreen> {
             rendition.getContents().forEach(function(contents) {
               contents.addStylesheetRules([
                 ['*', ['line-height', '$lineHeight', true]],
+                ['*', ['color', '$textColor', true]],
+                ['body', ['background-color', '$bgColor', true]],
                 ['p, div, span, li, td, th, blockquote, pre', ['line-height', '$lineHeight', true]],
-                ['p, div, span, li, td, th, blockquote, pre', ['text-align', '$textAlign', true]]
+                ['p, div, span, li, td, th, blockquote, pre', ['text-align', '$textAlign', true]],
+                ['a', ['color', '$textColor', true]]
               ]);
             });
           }
@@ -131,6 +136,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
     _epubController.webViewController?.evaluateJavascript(
       source: 'rendition.themes.override("padding-bottom", "30px", true)',
     );
+
+    // Trigger rebuild to update scaffold background
+    setState(() {});
   }
 
   void _toggleControls() {
@@ -191,11 +199,19 @@ class _ReaderScreenState extends State<ReaderScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final reader = context.watch<ReaderNotifier>();
+    final themeBackground = Color(
+      int.parse(reader.theme.backgroundColor.replaceFirst('#', '0xFF')),
+    );
+    final themeTextColor = Color(
+      int.parse(reader.theme.textColor.replaceFirst('#', '0xFF')),
+    );
+
     return Focus(
       autofocus: true,
       onKeyEvent: _handleKeyEvent,
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: themeBackground,
         body: SafeArea(
           child: Stack(
             children: [
@@ -321,7 +337,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
               if (_savedCfiToRestore != null)
                 Positioned.fill(
                   child: Container(
-                    color: Colors.white,
+                    color: themeBackground,
                     child: const Center(child: CircularProgressIndicator()),
                   ),
                 ),
@@ -339,9 +355,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
                           widget.book.progress;
                       return Text(
                         '${(progress * 100).toStringAsFixed(0)}%',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: Colors.black54,
+                          color: themeTextColor.withValues(alpha: 0.6),
                           fontWeight: FontWeight.w500,
                         ),
                       );
