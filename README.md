@@ -1,16 +1,22 @@
-# ereader
+# eReader
 
-A new Flutter project.
+A clean and simple EPUB reader application built with Flutter.
+
+## Features
+
+- **Library Management**: Import and organize your EPUB collection.
+- **Reading Experience**: Customizable fonts, text size, line spacing, and themes (Light, Dark, Sepia).
+- **Progress Tracking**: Automatically saves your reading progress.
+- **Formatting Persistence**: Saves formatting settings per book.
+- **Table of Contents**: Easy navigation through chapters.
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+To run this project:
 
-A few resources to get you started if this is your first Flutter project:
+1.  Ensure you have Flutter installed.
+2.  Clone the repository.
+3.  Run `flutter pub get` to install dependencies.
+4.  Run `flutter run` to start the app.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+For more information on the project structure and architecture, check `architecture.md`.
