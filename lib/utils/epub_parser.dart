@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:archive/archive.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 import 'package:xml/xml.dart';
 
 /// Metadata extracted from an EPUB file.
@@ -99,14 +101,14 @@ class EpubParser {
             coverPath = savePath;
           }
         } catch (e) {
-          // XML parse error, stick to defaults
+          debugPrint('EpubParser: Failed to parse OPF metadata: $e');
         }
       } else {
         // Fallback: try to find cover by filename if no OPF found (rare)
         // ... (We could add the pattern matching logic here if needed, but OPF is standard)
       }
     } catch (e) {
-      // General error
+      debugPrint('EpubParser: Failed to parse EPUB file: $e');
     }
 
     return EpubMetadata(
@@ -220,7 +222,7 @@ class EpubParser {
         await file.delete();
       }
     } catch (e) {
-      // Ignore deletion errors
+      debugPrint('EpubParser: Failed to delete cover file: $e');
     }
   }
 }

@@ -2,57 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_epub_viewer/flutter_epub_viewer.dart';
 
 import '../models/book.dart';
+import '../models/reader_enums.dart';
 
-/// Available fonts for the reader.
-enum ReaderFont {
-  bookDefault('Book Default', 'inherit'),
-  serif('Serif', 'serif'),
-  sansSerif('Sans Serif', 'sans-serif');
-
-  final String displayName;
-  final String fontFamily;
-
-  const ReaderFont(this.displayName, this.fontFamily);
-}
-
-/// Line spacing options for the reader.
-enum LineSpacing {
-  compact('Compact', 1.2),
-  normal('Normal', 1.5),
-  relaxed('Relaxed', 1.8),
-  loose('Loose', 2.0);
-
-  final String displayName;
-  final double value;
-
-  const LineSpacing(this.displayName, this.value);
-}
-
-/// Text alignment options for the reader.
-enum TextAlignment {
-  left('Left', 'left'),
-  justify('Justify', 'justify'),
-  center('Center', 'center'),
-  right('Right', 'right');
-
-  final String displayName;
-  final String cssValue;
-
-  const TextAlignment(this.displayName, this.cssValue);
-}
-
-/// Reader theme options (background and text colors).
-enum ReaderTheme {
-  white('White', '#FFFFFF', '#000000'),
-  sepia('Sepia', '#F4ECD8', '#5B4636'),
-  dark('Dark', '#1A1A1A', '#E0E0E0');
-
-  final String displayName;
-  final String backgroundColor;
-  final String textColor;
-
-  const ReaderTheme(this.displayName, this.backgroundColor, this.textColor);
-}
+export '../models/reader_enums.dart';
 
 /// Manages the EPUB reader state.
 class ReaderNotifier extends ChangeNotifier {

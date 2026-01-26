@@ -22,24 +22,30 @@ This app uses **Provider** for state management with `ChangeNotifier` classes.
 
 ```
 lib/
-├── main.dart              # App entry point, provider setup
+├── main.dart                  # App entry point, provider setup
 ├── models/
-│   └── book.dart          # Book data model with JSON serialization
+│   ├── book.dart              # Book data model with JSON serialization
+│   └── reader_enums.dart      # Reader enums (fonts, themes, spacing)
 ├── notifiers/
+│   ├── notifiers.dart         # Barrel export
 │   ├── library_notifier.dart  # Manages book collection
 │   └── reader_notifier.dart   # Manages reading session state
 ├── screens/
 │   ├── library_screen.dart    # Book grid view
 │   └── reader_screen.dart     # EPUB reader view
 ├── widgets/
+│   ├── widgets.dart           # Barrel export
 │   ├── book_card.dart         # Book cover card widget
 │   ├── chapters_sheet.dart    # Table of contents bottom sheet
+│   ├── reader_bottom_bar.dart # Reader progress slider bar
 │   ├── reader_settings_sheet.dart  # Font/formatting settings
+│   ├── reader_top_bar.dart    # Reader header with controls
 │   └── text_selection_sheet.dart   # Copy/highlight actions
 ├── utils/
-│   └── epub_parser.dart   # Extracts metadata from EPUB files
+│   ├── epub_parser.dart       # Extracts metadata from EPUB files
+│   └── epub_style_injector.dart    # CSS injection for reader
 └── theme/
-    └── app_theme.dart     # App theming (colors, text styles)
+    └── app_theme.dart         # App theming (colors, text styles)
 ```
 
 ## Key Concepts
@@ -90,3 +96,12 @@ Books are stored as JSON in `SharedPreferences`. Cover images are saved to the a
 ### Styling changes
 
 All theming is in `theme/app_theme.dart`. Prefer using theme values over hardcoded colors/styles.
+
+### Using barrel exports
+
+Import all widgets or notifiers with a single import:
+```dart
+import 'widgets/widgets.dart';
+import 'notifiers/notifiers.dart';
+```
+

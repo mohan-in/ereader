@@ -9,8 +9,11 @@ import 'package:provider/provider.dart';
 import '../models/book.dart';
 import '../notifiers/library_notifier.dart';
 import '../notifiers/reader_notifier.dart';
+import '../utils/epub_style_injector.dart';
 import '../widgets/chapters_sheet.dart';
+import '../widgets/reader_bottom_bar.dart';
 import '../widgets/reader_settings_sheet.dart';
+import '../widgets/reader_top_bar.dart';
 import '../widgets/text_selection_sheet.dart';
 
 /// EPUB reader screen with clean gesture handling.
@@ -29,13 +32,15 @@ class ReaderScreen extends StatefulWidget {
 }
 
 class _ReaderScreenState extends State<ReaderScreen> {
+  // Constants
+  static const double _tapEdgeThreshold = 0.25;
+  static const Duration _navigationDelay = Duration(milliseconds: 500);
+  static const Duration _postNavigationDelay = Duration(milliseconds: 200);
+  static const double _swipeThreshold = 10.0;
+
   late final EpubController _epubController;
   bool _showControls = false;
   bool _isLocationLoaded = false;
-
-  // Slider state for smooth dragging
-  bool _isDraggingSlider = false;
-  double _sliderValue = 0.0;
 
   // Track pointer movement to distinguish taps from swipes
   double _pointerStartX = 0.0;
@@ -90,51 +95,18 @@ class _ReaderScreenState extends State<ReaderScreen> {
     }
 
     // Apply line spacing, text alignment, and theme colors
-    final lineHeight = reader.lineSpacing.value;
-    final textAlign = reader.textAlignment.cssValue;
-    final bgColor = reader.theme.backgroundColor;
-    final textColor = reader.theme.textColor;
-
-    // Register a hook that applies styles to each page as it renders
-    // Also apply immediately to current content
-    _epubController.webViewController?.evaluateJavascript(
-      source:
-          '''
-        (function() {
-          // Register hook for future page loads (re-register overwrites previous)
-          if (typeof rendition !== 'undefined' && rendition.hooks) {
-            rendition.hooks.content.register(function(contents) {
-              contents.addStylesheetRules([
-                ['*', ['line-height', '$lineHeight', true]],
-                ['*', ['color', '$textColor', true]],
-                ['body', ['background-color', '$bgColor', true]],
-                ['p, div, span, li, td, th, blockquote, pre', ['line-height', '$lineHeight', true]],
-                ['p, div, span, li, td, th, blockquote, pre', ['text-align', '$textAlign', true]],
-                ['a', ['color', '$textColor', true]]
-              ]);
-            });
-          }
-          
-          // Apply immediately to current page
-          if (typeof rendition !== 'undefined' && rendition.getContents) {
-            rendition.getContents().forEach(function(contents) {
-              contents.addStylesheetRules([
-                ['*', ['line-height', '$lineHeight', true]],
-                ['*', ['color', '$textColor', true]],
-                ['body', ['background-color', '$bgColor', true]],
-                ['p, div, span, li, td, th, blockquote, pre', ['line-height', '$lineHeight', true]],
-                ['p, div, span, li, td, th, blockquote, pre', ['text-align', '$textAlign', true]],
-                ['a', ['color', '$textColor', true]]
-              ]);
-            });
-          }
-        })()
-      ''',
+    final styleScript = EpubStyleInjector.buildStyleScript(
+      lineHeight: reader.lineSpacing.value,
+      textAlign: reader.textAlignment.cssValue,
+      bgColor: reader.theme.backgroundColor,
+      textColor: reader.theme.textColor,
     );
+
+    _epubController.webViewController?.evaluateJavascript(source: styleScript);
 
     // Add padding to bottom to make room for progress footer
     _epubController.webViewController?.evaluateJavascript(
-      source: 'rendition.themes.override("padding-bottom", "30px", true)',
+      source: EpubStyleInjector.bottomPaddingScript,
     );
 
     // Trigger rebuild to update scaffold background
@@ -149,9 +121,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
 
   void _handleTouch(double normalizedX, double normalizedY) {
     // normalizedX is 0.0 to 1.0 across the screen width
-    if (normalizedX < 0.25) {
+    if (normalizedX < _tapEdgeThreshold) {
       _epubController.prev();
-    } else if (normalizedX > 0.75) {
+    } else if (normalizedX > (1.0 - _tapEdgeThreshold)) {
       _epubController.next();
     } else {
       _toggleControls();
@@ -227,7 +199,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                     if (!_isSwipeGesture) {
                       final dx = (e.position.dx - _pointerStartX).abs();
                       final dy = (e.position.dy - _pointerStartY).abs();
-                      if (dx > 10 || dy > 10) {
+                      if (dx > _swipeThreshold || dy > _swipeThreshold) {
                         _isSwipeGesture = true;
                       }
                     }
@@ -273,11 +245,11 @@ class _ReaderScreenState extends State<ReaderScreen> {
                         final cfiToNavigate = _savedCfiToRestore!;
                         _savedCfiToRestore =
                             null; // Clear to prevent re-navigation
-                        await Future.delayed(const Duration(milliseconds: 500));
+                        await Future.delayed(_navigationDelay);
                         if (!mounted) return;
                         _epubController.display(cfi: cfiToNavigate);
                         // Small delay for navigation to complete before hiding overlay
-                        await Future.delayed(const Duration(milliseconds: 200));
+                        await Future.delayed(_postNavigationDelay);
                       }
                       // Hide loading overlay by clearing the CFI
                       if (mounted && _savedCfiToRestore == null) {
@@ -377,198 +349,39 @@ class _ReaderScreenState extends State<ReaderScreen> {
                 ),
 
                 // Top bar
-                Positioned(top: 0, left: 0, right: 0, child: _buildTopBar()),
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: ReaderTopBar(
+                    book: widget.book,
+                    onChaptersTap: () {
+                      _toggleControls();
+                      _showChaptersSheet();
+                    },
+                    onSettingsTap: () {
+                      _toggleControls();
+                      _showFontSettings();
+                    },
+                  ),
+                ),
 
                 // Bottom bar with seek
                 Positioned(
                   bottom: 0,
                   left: 0,
                   right: 0,
-                  child: _buildBottomBar(),
+                  child: ReaderBottomBar(
+                    book: widget.book,
+                    isLocationLoaded: _isLocationLoaded,
+                    onSeek: _seekTo,
+                  ),
                 ),
               ],
             ],
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildTopBar() {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Consumer<ReaderNotifier>(
-      builder: (context, reader, child) {
-        return Material(
-          color: colorScheme.surface,
-          elevation: 4,
-          child: SafeArea(
-            bottom: false,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-              child: Row(
-                children: [
-                  // Back button
-                  IconButton(
-                    icon: Icon(Icons.arrow_back, color: colorScheme.onSurface),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-
-                  // Title
-                  Expanded(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          reader.currentBook?.title ?? widget.book.title,
-                          style: TextStyle(
-                            color: colorScheme.onSurface,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                        ),
-                        if (reader.currentBook?.author != null)
-                          Text(
-                            reader.currentBook!.author!,
-                            style: TextStyle(
-                              color: colorScheme.onSurfaceVariant,
-                              fontSize: 12,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
-                          ),
-                      ],
-                    ),
-                  ),
-
-                  // Chapters button
-                  IconButton(
-                    icon: Icon(
-                      Icons.toc_outlined,
-                      color: colorScheme.onSurface,
-                    ),
-                    onPressed: () {
-                      _toggleControls();
-                      _showChaptersSheet();
-                    },
-                    tooltip: 'Chapters',
-                  ),
-
-                  // Font size button
-                  IconButton(
-                    icon: Icon(
-                      Icons.format_size_outlined,
-                      color: colorScheme.onSurface,
-                    ),
-                    onPressed: () {
-                      _toggleControls();
-                      _showFontSettings();
-                    },
-                    tooltip: 'Appearance',
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildBottomBar() {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Consumer<ReaderNotifier>(
-      builder: (context, reader, child) {
-        final progress =
-            reader.currentLocation?.progress ?? widget.book.progress;
-        final displayValue = _isDraggingSlider
-            ? _sliderValue
-            : progress.clamp(0.0, 1.0);
-
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-            child: Card(
-              elevation: 6,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(32),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 12,
-                ),
-                child: Row(
-                  children: [
-                    // Progress Text
-                    SizedBox(
-                      width: 48,
-                      child: Text(
-                        '${(displayValue * 100).toInt()}%',
-                        style: TextStyle(
-                          color: colorScheme.onSurface,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-
-                    const SizedBox(width: 12),
-
-                    // Slider
-                    Expanded(
-                      child: SliderTheme(
-                        data: SliderTheme.of(context).copyWith(
-                          trackHeight: 4,
-                          activeTrackColor: colorScheme.primary,
-                          inactiveTrackColor:
-                              colorScheme.surfaceContainerHighest,
-                          thumbShape: const RoundSliderThumbShape(
-                            enabledThumbRadius: 8,
-                          ),
-                          overlayShape: const RoundSliderOverlayShape(
-                            overlayRadius: 20,
-                          ),
-                        ),
-                        child: Slider(
-                          value: displayValue,
-                          onChangeStart: _isLocationLoaded
-                              ? (value) {
-                                  setState(() {
-                                    _isDraggingSlider = true;
-                                    _sliderValue = value;
-                                  });
-                                }
-                              : null,
-                          onChanged: _isLocationLoaded
-                              ? (value) {
-                                  setState(() {
-                                    _sliderValue = value;
-                                  });
-                                }
-                              : null,
-                          onChangeEnd: _isLocationLoaded
-                              ? (value) {
-                                  _seekTo(value);
-                                  setState(() {
-                                    _isDraggingSlider = false;
-                                  });
-                                }
-                              : null,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 
