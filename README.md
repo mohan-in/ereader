@@ -10,6 +10,15 @@ A clean and simple EPUB reader application built with Flutter.
 - **Formatting Persistence**: Saves formatting settings per book.
 - **Table of Contents**: Easy navigation through chapters.
 
+## Technology Stack
+
+- **Framework**: Flutter (Dart)
+- **State Management**: Provider
+- **EPUB Rendering**: flutter_epub_viewer
+- **Local Storage**: shared_preferences
+- **File Handling**: file_picker, path_provider, archive
+- **XML Parsing**: xml
+
 ## Getting Started
 
 To run this project:
@@ -19,4 +28,6 @@ To run this project:
 3.  Run `flutter pub get` to install dependencies.
 4.  Run `flutter run` to start the app.
 
-For more information on the project structure and architecture, check `architecture.md`.
+## Documentation
+
+For detailed architecture and project structure, see [ARCHITECTURE.md](ARCHITECTURE.md).
