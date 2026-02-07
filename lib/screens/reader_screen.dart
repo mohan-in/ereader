@@ -59,6 +59,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
   // Saved CFI to restore after epub loads (also used as loading indicator)
   String? _savedCfiToRestore;
 
+  // Flag to show loading overlay while restoring position
+  bool _isRestoringPosition = false;
+
   @override
   void initState() {
     super.initState();
@@ -68,8 +71,10 @@ class _ReaderScreenState extends State<ReaderScreen> {
       context.read<ReaderNotifier>().setCurrentBook(widget.book);
       // Get fresh book data and store CFI to restore
       final freshBook = context.read<LibraryNotifier>().getBook(widget.book.id);
+      final cfi = freshBook?.lastReadCfi ?? widget.book.lastReadCfi;
       setState(() {
-        _savedCfiToRestore = freshBook?.lastReadCfi ?? widget.book.lastReadCfi;
+        _savedCfiToRestore = cfi;
+        _isRestoringPosition = cfi != null && cfi.isNotEmpty;
       });
     });
   }
@@ -251,9 +256,11 @@ class _ReaderScreenState extends State<ReaderScreen> {
                         // Small delay for navigation to complete before hiding overlay
                         await Future.delayed(_postNavigationDelay);
                       }
-                      // Hide loading overlay by clearing the CFI
-                      if (mounted && _savedCfiToRestore == null) {
-                        setState(() {});
+                      // Hide loading overlay
+                      if (mounted) {
+                        setState(() {
+                          _isRestoringPosition = false;
+                        });
                       }
 
                       try {
@@ -306,7 +313,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
               ),
 
               // Loading overlay while restoring position
-              if (_savedCfiToRestore != null)
+              if (_isRestoringPosition)
                 Positioned.fill(
                   child: Container(
                     color: themeBackground,

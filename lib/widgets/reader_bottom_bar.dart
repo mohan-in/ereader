@@ -33,9 +33,10 @@ class _ReaderBottomBarState extends State<ReaderBottomBar> {
       builder: (context, reader, child) {
         final progress =
             reader.currentLocation?.progress ?? widget.book.progress;
+        // Use the seek target if we're seeking, otherwise use actual progress
         final displayValue = _isDraggingSlider
             ? _sliderValue
-            : progress.clamp(0.0, 1.0);
+            : (reader.seekTargetProgress ?? progress).clamp(0.0, 1.0);
 
         return SafeArea(
           child: Padding(
@@ -102,10 +103,16 @@ class _ReaderBottomBarState extends State<ReaderBottomBar> {
                               : null,
                           onChangeEnd: widget.isLocationLoaded
                               ? (value) {
-                                  widget.onSeek(value);
+                                  // Set seek target in notifier to hold slider position
+                                  // This must happen BEFORE clearing _isDraggingSlider
+                                  context
+                                      .read<ReaderNotifier>()
+                                      .setSeekTargetProgress(value);
                                   setState(() {
                                     _isDraggingSlider = false;
                                   });
+                                  // Fire and forget - coordination happens via seekTargetProgress
+                                  widget.onSeek(value);
                                 }
                               : null,
                         ),

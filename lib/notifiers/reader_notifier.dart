@@ -18,6 +18,7 @@ class ReaderNotifier extends ChangeNotifier {
   TextAlignment _textAlignment = TextAlignment.justify;
   ReaderTheme _theme = ReaderTheme.white;
   String? _error;
+  double? _seekTargetProgress;
 
   Book? get currentBook => _currentBook;
   List<EpubChapter> get chapters => _chapters;
@@ -29,6 +30,7 @@ class ReaderNotifier extends ChangeNotifier {
   TextAlignment get textAlignment => _textAlignment;
   ReaderTheme get theme => _theme;
   String? get error => _error;
+  double? get seekTargetProgress => _seekTargetProgress;
 
   /// Sets the current book to read and loads its formatting preferences.
   void setCurrentBook(Book book) {
@@ -61,6 +63,20 @@ class ReaderNotifier extends ChangeNotifier {
   /// Updates the current reading location.
   void setCurrentLocation(EpubLocation location) {
     _currentLocation = location;
+    // Clear seek target when we receive a location update close to the target
+    if (_seekTargetProgress != null) {
+      final diff = (location.progress - _seekTargetProgress!).abs();
+      if (diff < 0.02) {
+        // Within 2% tolerance
+        _seekTargetProgress = null;
+      }
+    }
+    notifyListeners();
+  }
+
+  /// Sets the seek target progress (used during slider seek).
+  void setSeekTargetProgress(double? progress) {
+    _seekTargetProgress = progress;
     notifyListeners();
   }
 
@@ -123,6 +139,7 @@ class ReaderNotifier extends ChangeNotifier {
     _currentLocation = null;
     _isLoading = false;
     _error = null;
+    _seekTargetProgress = null;
     notifyListeners();
   }
 }
