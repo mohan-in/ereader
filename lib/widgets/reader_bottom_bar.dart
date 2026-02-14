@@ -1,21 +1,20 @@
+import 'package:ereader/models/book.dart';
+import 'package:ereader/notifiers/reader_notifier.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../models/book.dart';
-import '../notifiers/reader_notifier.dart';
-
 /// Bottom bar for the reader screen with progress slider.
 class ReaderBottomBar extends StatefulWidget {
-  final Book book;
-  final bool isLocationLoaded;
-  final ValueChanged<double> onSeek;
-
   const ReaderBottomBar({
-    super.key,
     required this.book,
     required this.isLocationLoaded,
     required this.onSeek,
+    super.key,
   });
+
+  final Book book;
+  final bool isLocationLoaded;
+  final ValueChanged<double> onSeek;
 
   @override
   State<ReaderBottomBar> createState() => _ReaderBottomBarState();
@@ -23,7 +22,7 @@ class ReaderBottomBar extends StatefulWidget {
 
 class _ReaderBottomBarState extends State<ReaderBottomBar> {
   bool _isDraggingSlider = false;
-  double _sliderValue = 0.0;
+  double _sliderValue = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -33,14 +32,18 @@ class _ReaderBottomBarState extends State<ReaderBottomBar> {
       builder: (context, reader, child) {
         final progress =
             reader.currentLocation?.progress ?? widget.book.progress;
-        // Use the seek target if we're seeking, otherwise use actual progress
         final displayValue = _isDraggingSlider
             ? _sliderValue
             : (reader.seekTargetProgress ?? progress).clamp(0.0, 1.0);
 
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+            padding: const EdgeInsets.fromLTRB(
+              16,
+              0,
+              16,
+              24,
+            ),
             child: Card(
               elevation: 6,
               shape: RoundedRectangleBorder(
@@ -72,18 +75,21 @@ class _ReaderBottomBarState extends State<ReaderBottomBar> {
                     // Slider
                     Expanded(
                       child: SliderTheme(
-                        data: SliderTheme.of(context).copyWith(
-                          trackHeight: 4,
-                          activeTrackColor: colorScheme.primary,
-                          inactiveTrackColor:
-                              colorScheme.surfaceContainerHighest,
-                          thumbShape: const RoundSliderThumbShape(
-                            enabledThumbRadius: 8,
-                          ),
-                          overlayShape: const RoundSliderOverlayShape(
-                            overlayRadius: 20,
-                          ),
-                        ),
+                        data:
+                            SliderTheme.of(
+                              context,
+                            ).copyWith(
+                              trackHeight: 4,
+                              activeTrackColor: colorScheme.primary,
+                              inactiveTrackColor:
+                                  colorScheme.surfaceContainerHighest,
+                              thumbShape: const RoundSliderThumbShape(
+                                enabledThumbRadius: 8,
+                              ),
+                              overlayShape: const RoundSliderOverlayShape(
+                                overlayRadius: 20,
+                              ),
+                            ),
                         child: Slider(
                           value: displayValue,
                           onChangeStart: widget.isLocationLoaded
@@ -103,15 +109,14 @@ class _ReaderBottomBarState extends State<ReaderBottomBar> {
                               : null,
                           onChangeEnd: widget.isLocationLoaded
                               ? (value) {
-                                  // Set seek target in notifier to hold slider position
-                                  // This must happen BEFORE clearing _isDraggingSlider
                                   context
                                       .read<ReaderNotifier>()
-                                      .setSeekTargetProgress(value);
+                                      .setSeekTargetProgress(
+                                        value,
+                                      );
                                   setState(() {
                                     _isDraggingSlider = false;
                                   });
-                                  // Fire and forget - coordination happens via seekTargetProgress
                                   widget.onSeek(value);
                                 }
                               : null,

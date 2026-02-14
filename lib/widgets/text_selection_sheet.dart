@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_epub_viewer/flutter_epub_viewer.dart';
@@ -6,16 +8,16 @@ import 'package:flutter_epub_viewer/flutter_epub_viewer.dart';
 ///
 /// Displays the selected text preview and action buttons.
 class TextSelectionSheet extends StatelessWidget {
-  final EpubTextSelection selection;
-  final VoidCallback onHighlight;
-  final VoidCallback onCopy;
-
   const TextSelectionSheet({
-    super.key,
     required this.selection,
     required this.onHighlight,
     required this.onCopy,
+    super.key,
   });
+
+  final EpubTextSelection selection;
+  final VoidCallback onHighlight;
+  final VoidCallback onCopy;
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +48,9 @@ class TextSelectionSheet extends StatelessWidget {
               '"${selection.selectedText}"',
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontStyle: FontStyle.italic),
+              style: const TextStyle(
+                fontStyle: FontStyle.italic,
+              ),
             ),
           ),
 
@@ -57,7 +61,10 @@ class TextSelectionSheet extends StatelessWidget {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  icon: const Icon(Icons.highlight, color: Colors.orange),
+                  icon: const Icon(
+                    Icons.highlight,
+                    color: Colors.orange,
+                  ),
                   label: const Text('Highlight'),
                   onPressed: onHighlight,
                 ),
@@ -86,28 +93,37 @@ class TextSelectionSheet extends StatelessWidget {
     required EpubController epubController,
     required VoidCallback onDismiss,
   }) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => TextSelectionSheet(
-        selection: selection,
-        onHighlight: () {
-          Navigator.pop(context);
-          if (selection.selectionCfi.isNotEmpty) {
-            epubController.addHighlight(
-              cfi: selection.selectionCfi,
-              color: Colors.yellow,
+    unawaited(
+      showModalBottomSheet<void>(
+        context: context,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(20),
+          ),
+        ),
+        builder: (context) => TextSelectionSheet(
+          selection: selection,
+          onHighlight: () {
+            Navigator.pop(context);
+            if (selection.selectionCfi.isNotEmpty) {
+              epubController.addHighlight(
+                cfi: selection.selectionCfi,
+              );
+            }
+          },
+          onCopy: () {
+            Navigator.pop(context);
+            unawaited(
+              Clipboard.setData(
+                ClipboardData(
+                  text: selection.selectedText,
+                ),
+              ),
             );
-          }
-        },
-        onCopy: () {
-          Navigator.pop(context);
-          Clipboard.setData(ClipboardData(text: selection.selectedText));
-        },
-      ),
-    ).whenComplete(onDismiss);
+          },
+        ),
+      ).whenComplete(onDismiss),
+    );
   }
 }

@@ -1,10 +1,11 @@
+import 'dart:async';
+
+import 'package:ereader/models/book.dart';
+import 'package:ereader/notifiers/library_notifier.dart';
+import 'package:ereader/screens/reader_screen.dart';
+import 'package:ereader/widgets/book_card.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
-import '../models/book.dart';
-import '../notifiers/library_notifier.dart';
-import '../widgets/book_card.dart';
-import 'reader_screen.dart';
 
 /// Library screen displaying the user's book collection.
 ///
@@ -25,7 +26,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
       body: Consumer<LibraryNotifier>(
         builder: (context, library, child) {
           if (library.isLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
           }
 
           if (library.error != null) {
@@ -40,14 +43,19 @@ class _LibraryScreenState extends State<LibraryScreen> {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => context.read<LibraryNotifier>().addBookFromPicker(),
+        onPressed: () => unawaited(
+          context.read<LibraryNotifier>().addBookFromPicker(),
+        ),
         child: const Icon(Icons.add_rounded),
       ),
     );
   }
 
   /// Displays an error message with an icon.
-  Widget _buildErrorState(BuildContext context, String error) {
+  Widget _buildErrorState(
+    BuildContext context,
+    String error,
+  ) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -112,12 +120,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
   }
 
   /// Grid layout displaying book cards.
-  /// Adapts column count based on screen width for DeX and tablet support.
-  Widget _buildBookGrid(BuildContext context, List<Book> books) {
+  /// Adapts column count based on screen width.
+  Widget _buildBookGrid(
+    BuildContext context,
+    List<Book> books,
+  ) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Calculate optimal columns based on available width
-        // Minimum card width of 180dp, maximum of 6 columns
         const minCardWidth = 180.0;
         const spacing = 16.0;
         final availableWidth = constraints.maxWidth - (spacing * 2);
@@ -148,68 +157,95 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   /// Opens the reader screen for the given book.
   void _openBook(BuildContext context, Book book) {
-    // Get fresh book from notifier to ensure latest reading position
     final freshBook = context.read<LibraryNotifier>().getBook(book.id) ?? book;
 
-    Navigator.of(context)
-        .push(
-          PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) =>
-                ReaderScreen(book: freshBook),
-            transitionsBuilder:
-                (context, animation, secondaryAnimation, child) {
-                  return FadeTransition(opacity: animation, child: child);
-                },
-            transitionDuration: const Duration(milliseconds: 200),
-          ),
-        )
-        .then((_) {
-          // Trigger rebuild to show updated sort order
-          if (mounted) setState(() {});
-        });
+    unawaited(
+      Navigator.of(context)
+          .push<void>(
+            PageRouteBuilder(
+              pageBuilder:
+                  (
+                    context,
+                    animation,
+                    secondaryAnimation,
+                  ) => ReaderScreen(book: freshBook),
+              transitionsBuilder:
+                  (
+                    context,
+                    animation,
+                    secondaryAnimation,
+                    child,
+                  ) {
+                    return FadeTransition(
+                      opacity: animation,
+                      child: child,
+                    );
+                  },
+              transitionDuration: const Duration(
+                milliseconds: 200,
+              ),
+            ),
+          )
+          .then((_) {
+            // Trigger rebuild to show updated sort order
+            if (mounted) setState(() {});
+          }),
+    );
   }
 
-  /// Shows options for the selected book (currently just delete).
+  /// Shows options for the selected book.
   void _showBookOptions(BuildContext context, Book book) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
+    unawaited(
+      showModalBottomSheet<void>(
+        context: context,
+        builder: (context) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              vertical: 8,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(
+                    bottom: 16,
+                  ),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.errorContainer,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    Icons.delete_outline_rounded,
-                    color: Theme.of(context).colorScheme.error,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                title: const Text('Remove from library'),
-                subtitle: const Text('This cannot be undone'),
-                onTap: () {
-                  Navigator.pop(context);
-                  context.read<LibraryNotifier>().removeBook(book.id);
-                },
-              ),
-            ],
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.errorContainer,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.delete_outline_rounded,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                  title: const Text(
+                    'Remove from library',
+                  ),
+                  subtitle: const Text(
+                    'This cannot be undone',
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    unawaited(
+                      context.read<LibraryNotifier>().removeBook(book.id),
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -1,27 +1,30 @@
+import 'dart:async';
+
+import 'package:ereader/notifiers/library_notifier.dart';
+import 'package:ereader/notifiers/reader_notifier.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../notifiers/library_notifier.dart';
-import '../notifiers/reader_notifier.dart';
-
 class ReaderSettingsSheet extends StatelessWidget {
+  const ReaderSettingsSheet({
+    required this.bookId,
+    required this.onSettingsChanged,
+    super.key,
+  });
+
   final String bookId;
   final VoidCallback onSettingsChanged;
 
-  const ReaderSettingsSheet({
-    super.key,
-    required this.bookId,
-    required this.onSettingsChanged,
-  });
-
   void _saveFormatting(BuildContext context) {
     final reader = context.read<ReaderNotifier>();
-    context.read<LibraryNotifier>().updateBookFormatting(
-      bookId,
-      fontSize: reader.fontSize,
-      fontIndex: reader.font.index,
-      lineSpacingIndex: reader.lineSpacing.index,
-      textAlignmentIndex: reader.textAlignment.index,
+    unawaited(
+      context.read<LibraryNotifier>().updateBookFormatting(
+        bookId,
+        fontSize: reader.fontSize,
+        fontIndex: reader.font.index,
+        lineSpacingIndex: reader.lineSpacing.index,
+        textAlignmentIndex: reader.textAlignment.index,
+      ),
     );
   }
 
@@ -40,7 +43,9 @@ class ReaderSettingsSheet extends StatelessWidget {
                 child: Container(
                   width: 40,
                   height: 4,
-                  margin: const EdgeInsets.only(bottom: 24),
+                  margin: const EdgeInsets.only(
+                    bottom: 24,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.grey[400],
                     borderRadius: BorderRadius.circular(2),
@@ -51,9 +56,9 @@ class ReaderSettingsSheet extends StatelessWidget {
               Center(
                 child: Text(
                   'Reading Settings',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
@@ -72,13 +77,22 @@ class ReaderSettingsSheet extends StatelessWidget {
                 children: ReaderTheme.values.map((theme) {
                   final isSelected = reader.theme == theme;
                   final bgColor = Color(
-                    int.parse(theme.backgroundColor.replaceFirst('#', '0xFF')),
+                    int.parse(
+                      theme.backgroundColor.replaceFirst('#', '0xFF'),
+                    ),
                   );
                   final textColor = Color(
-                    int.parse(theme.textColor.replaceFirst('#', '0xFF')),
+                    int.parse(
+                      theme.textColor.replaceFirst(
+                        '#',
+                        '0xFF',
+                      ),
+                    ),
                   );
                   return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                    ),
                     child: GestureDetector(
                       onTap: () {
                         reader.setTheme(theme);
@@ -101,10 +115,12 @@ class ReaderSettingsSheet extends StatelessWidget {
                               boxShadow: isSelected
                                   ? [
                                       BoxShadow(
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .primary
-                                            .withValues(alpha: 0.3),
+                                        color:
+                                            Theme.of(
+                                              context,
+                                            ).colorScheme.primary.withValues(
+                                              alpha: 0.3,
+                                            ),
                                         blurRadius: 8,
                                         spreadRadius: 1,
                                       ),
@@ -153,12 +169,14 @@ class ReaderSettingsSheet extends StatelessWidget {
                       value: font,
                       label: Text(
                         font.displayName,
-                        style: const TextStyle(fontSize: 12),
+                        style: const TextStyle(
+                          fontSize: 12,
+                        ),
                       ),
                     );
                   }).toList(),
                   selected: {reader.font},
-                  onSelectionChanged: (Set<ReaderFont> selected) {
+                  onSelectionChanged: (selected) {
                     reader.setFont(selected.first);
                     onSettingsChanged();
                     _saveFormatting(context);
@@ -190,11 +208,15 @@ class ReaderSettingsSheet extends StatelessWidget {
                     },
                   ),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 32),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                    ),
                     child: Text(
                       '${reader.fontSize.toInt()}',
                       style: Theme.of(context).textTheme.headlineMedium
-                          ?.copyWith(fontWeight: FontWeight.bold),
+                          ?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
                   ),
                   IconButton.filled(
@@ -227,12 +249,14 @@ class ReaderSettingsSheet extends StatelessWidget {
                       value: spacing,
                       label: Text(
                         spacing.displayName,
-                        style: const TextStyle(fontSize: 12),
+                        style: const TextStyle(
+                          fontSize: 12,
+                        ),
                       ),
                     );
                   }).toList(),
                   selected: {reader.lineSpacing},
-                  onSelectionChanged: (Set<LineSpacing> selected) {
+                  onSelectionChanged: (selected) {
                     reader.setLineSpacing(selected.first);
                     onSettingsChanged();
                     _saveFormatting(context);
@@ -258,23 +282,35 @@ class ReaderSettingsSheet extends StatelessWidget {
                   segments: const [
                     ButtonSegment<TextAlignment>(
                       value: TextAlignment.left,
-                      icon: Icon(Icons.format_align_left, size: 20),
+                      icon: Icon(
+                        Icons.format_align_left,
+                        size: 20,
+                      ),
                     ),
                     ButtonSegment<TextAlignment>(
                       value: TextAlignment.justify,
-                      icon: Icon(Icons.format_align_justify, size: 20),
+                      icon: Icon(
+                        Icons.format_align_justify,
+                        size: 20,
+                      ),
                     ),
                     ButtonSegment<TextAlignment>(
                       value: TextAlignment.center,
-                      icon: Icon(Icons.format_align_center, size: 20),
+                      icon: Icon(
+                        Icons.format_align_center,
+                        size: 20,
+                      ),
                     ),
                     ButtonSegment<TextAlignment>(
                       value: TextAlignment.right,
-                      icon: Icon(Icons.format_align_right, size: 20),
+                      icon: Icon(
+                        Icons.format_align_right,
+                        size: 20,
+                      ),
                     ),
                   ],
                   selected: {reader.textAlignment},
-                  onSelectionChanged: (Set<TextAlignment> selected) {
+                  onSelectionChanged: (selected) {
                     reader.setTextAlignment(selected.first);
                     onSettingsChanged();
                     _saveFormatting(context);

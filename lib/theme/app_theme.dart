@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 class AppTheme {
   AppTheme._();
 
-  // Custom color palette - clean, modern blue tones for a reading app
-  static const Color _primaryColor = Color(0xFF1565C0); // Blue
-  static const Color _secondaryColor = Color(0xFF1976D2); // Darker blue
-  static const Color _tertiaryColor = Color(0xFF03A9F4); // Light blue
+  // Custom color palette
+  static const Color _primaryColor = Color(0xFF1565C0);
+  static const Color _secondaryColor = Color(0xFF1976D2);
+  static const Color _tertiaryColor = Color(0xFF03A9F4);
 
   static ThemeData get lightTheme {
     return ThemeData(
@@ -15,7 +15,6 @@ class AppTheme {
       brightness: Brightness.light,
       colorScheme: ColorScheme.fromSeed(
         seedColor: _primaryColor,
-        brightness: Brightness.light,
         secondary: _secondaryColor,
         tertiary: _tertiaryColor,
       ),
@@ -35,7 +34,9 @@ class AppTheme {
       ),
       cardTheme: CardThemeData(
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
         color: Colors.white,
         surfaceTintColor: Colors.transparent,
       ),
@@ -43,13 +44,17 @@ class AppTheme {
         elevation: 4,
         backgroundColor: _primaryColor,
         foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
       ),
       scaffoldBackgroundColor: const Color(0xFFF8F9FC),
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(24),
+          ),
         ),
         elevation: 8,
       ),

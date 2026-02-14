@@ -1,10 +1,9 @@
+import 'package:ereader/models/book.dart';
+import 'package:ereader/models/reader_enums.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_epub_viewer/flutter_epub_viewer.dart';
 
-import '../models/book.dart';
-import '../models/reader_enums.dart';
-
-export '../models/reader_enums.dart';
+export 'package:ereader/models/reader_enums.dart';
 
 /// Manages the EPUB reader state.
 class ReaderNotifier extends ChangeNotifier {
@@ -12,7 +11,7 @@ class ReaderNotifier extends ChangeNotifier {
   List<EpubChapter> _chapters = [];
   EpubLocation? _currentLocation;
   bool _isLoading = false;
-  double _fontSize = 16.0;
+  double _fontSize = 16;
   ReaderFont _font = ReaderFont.bookDefault;
   LineSpacing _lineSpacing = LineSpacing.normal;
   TextAlignment _textAlignment = TextAlignment.justify;
@@ -81,7 +80,7 @@ class ReaderNotifier extends ChangeNotifier {
   }
 
   /// Sets loading state.
-  void setLoading(bool loading) {
+  void setLoading({required bool loading}) {
     _isLoading = loading;
     notifyListeners();
   }

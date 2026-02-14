@@ -1,26 +1,25 @@
 import 'dart:io';
 
+import 'package:ereader/models/book.dart';
 import 'package:flutter/material.dart';
-
-import '../models/book.dart';
 
 /// A card widget displaying a book cover and metadata.
 ///
 /// Shows the book cover (or a gradient placeholder if none),
-/// title, author, and last read time. Tap to open, long-press for options.
+/// title, author, and last read time.
 class BookCard extends StatelessWidget {
-  final Book book;
-  final int index;
-  final VoidCallback onTap;
-  final VoidCallback onLongPress;
-
   const BookCard({
-    super.key,
     required this.book,
     required this.index,
     required this.onTap,
     required this.onLongPress,
+    super.key,
   });
+
+  final Book book;
+  final int index;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
 
   // Gradient combinations for book covers without images
   static const List<List<Color>> _gradients = [
@@ -64,14 +63,25 @@ class BookCard extends StatelessWidget {
                     ? Image.file(
                         File(book.coverPath!),
                         fit: BoxFit.fill,
-                        errorBuilder: (context, error, stackTrace) {
-                          return _buildPlaceholderCover(context, colors);
-                        },
+                        errorBuilder:
+                            (
+                              context,
+                              error,
+                              stackTrace,
+                            ) {
+                              return _buildPlaceholderCover(
+                                context,
+                                colors,
+                              );
+                            },
                       )
-                    : _buildPlaceholderCover(context, colors),
+                    : _buildPlaceholderCover(
+                        context,
+                        colors,
+                      ),
               ),
-              // Book info - intrinsic height, no flex
-              Container(
+              // Book info
+              ColoredBox(
                 color: Theme.of(context).cardColor,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -99,10 +109,12 @@ class BookCard extends StatelessWidget {
                               book.author!,
                               style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface
-                                        .withValues(alpha: 0.6),
+                                    color:
+                                        Theme.of(
+                                          context,
+                                        ).colorScheme.onSurface.withValues(
+                                          alpha: 0.6,
+                                        ),
                                   ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -111,7 +123,7 @@ class BookCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    // Progress bar - only show if reading has started
+                    // Progress bar
                     if (book.progress > 0)
                       Container(
                         height: 3,
@@ -144,7 +156,10 @@ class BookCard extends StatelessWidget {
     );
   }
 
-  Widget _buildPlaceholderCover(BuildContext context, List<Color> colors) {
+  Widget _buildPlaceholderCover(
+    BuildContext context,
+    List<Color> colors,
+  ) {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(

@@ -1,34 +1,33 @@
+import 'package:ereader/models/book.dart';
+import 'package:ereader/utils/epub_parser.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../models/book.dart';
-import '../utils/epub_parser.dart';
 
 /// Key for storing books in SharedPreferences.
 const String _booksKey = 'library_books';
 
 /// Manages the book library state with persistence.
 class LibraryNotifier extends ChangeNotifier {
-  final List<Book> _books = [];
   bool _isLoading = false;
   String? _error;
   bool _initialized = false;
+  final List<Book> _books = [];
 
   List<Book> get books {
-    final sorted = List<Book>.from(_books);
-    sorted.sort((a, b) {
-      // Books with lastReadAt come first, sorted by most recent
-      if (a.lastReadAt != null && b.lastReadAt != null) {
-        return b.lastReadAt!.compareTo(a.lastReadAt!);
-      } else if (a.lastReadAt != null) {
-        return -1; // a has been read, b hasn't -> a comes first
-      } else if (b.lastReadAt != null) {
-        return 1; // b has been read, a hasn't -> b comes first
-      }
-      // Both unread: sort by title
-      return a.title.compareTo(b.title);
-    });
+    final sorted = List<Book>.from(_books)
+      ..sort((a, b) {
+        // Books with lastReadAt come first, sorted by most recent
+        if (a.lastReadAt != null && b.lastReadAt != null) {
+          return b.lastReadAt!.compareTo(a.lastReadAt!);
+        } else if (a.lastReadAt != null) {
+          return -1; // a has been read, b hasn't -> a comes first
+        } else if (b.lastReadAt != null) {
+          return 1; // b has been read, a hasn't -> b comes first
+        }
+        // Both unread: sort by title
+        return a.title.compareTo(b.title);
+      });
     return List.unmodifiable(sorted);
   }
 
@@ -53,7 +52,7 @@ class LibraryNotifier extends ChangeNotifier {
       }
 
       _initialized = true;
-    } catch (e) {
+    } on Exception catch (e) {
       _error = 'Failed to load library: $e';
     } finally {
       _isLoading = false;
@@ -67,7 +66,7 @@ class LibraryNotifier extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       final booksJson = Book.encodeBooks(_books);
       await prefs.setString(_booksKey, booksJson);
-    } catch (e) {
+    } on Exception catch (e) {
       debugPrint('Failed to save books: $e');
     }
   }
@@ -102,15 +101,15 @@ class LibraryNotifier extends ChangeNotifier {
         final book = Book(
           id: bookId,
           title: metadata.title,
-          author: metadata.author,
           filePath: filePath,
+          author: metadata.author,
           coverPath: metadata.coverPath,
         );
 
         _books.add(book);
         await _saveBooks();
       }
-    } catch (e) {
+    } on Exception catch (e) {
       _error = 'Failed to add book: $e';
     } finally {
       _isLoading = false;
@@ -134,7 +133,7 @@ class LibraryNotifier extends ChangeNotifier {
   Future<void> updateReadingProgress(
     String bookId,
     String cfi, {
-    double progress = 0.0,
+    double progress = 0,
   }) async {
     final index = _books.indexWhere((book) => book.id == bookId);
     if (index != -1) {
@@ -156,7 +155,10 @@ class LibraryNotifier extends ChangeNotifier {
   }) async {
     final index = _books.indexWhere((book) => book.id == bookId);
     if (index != -1) {
-      _books[index] = _books[index].copyWith(title: title, author: author);
+      _books[index] = _books[index].copyWith(
+        title: title,
+        author: author,
+      );
       await _saveBooks();
       notifyListeners();
     }
@@ -183,12 +185,10 @@ class LibraryNotifier extends ChangeNotifier {
     }
   }
 
-  /// Gets a book by ID.
   Book? getBook(String bookId) {
-    try {
-      return _books.firstWhere((book) => book.id == bookId);
-    } catch (_) {
-      return null;
-    }
+    final index = _books.indexWhere(
+      (book) => book.id == bookId,
+    );
+    return index != -1 ? _books[index] : null;
   }
 }

@@ -1,11 +1,14 @@
+import 'package:ereader/notifiers/reader_notifier.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../notifiers/reader_notifier.dart';
 
 class ChaptersSheet extends StatelessWidget {
-  final Function(String href) onChapterSelected;
+  const ChaptersSheet({
+    required this.onChapterSelected,
+    super.key,
+  });
 
-  const ChaptersSheet({super.key, required this.onChapterSelected});
+  final void Function(String href) onChapterSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +27,9 @@ class ChaptersSheet extends StatelessWidget {
                   child: Container(
                     width: 40,
                     height: 4,
-                    margin: const EdgeInsets.symmetric(vertical: 12),
+                    margin: const EdgeInsets.symmetric(
+                      vertical: 12,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.grey[400],
                       borderRadius: BorderRadius.circular(2),
@@ -32,7 +37,9 @@ class ChaptersSheet extends StatelessWidget {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.only(
+                    bottom: 12,
+                  ),
                   child: Text(
                     'Table of Contents',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -43,14 +50,20 @@ class ChaptersSheet extends StatelessWidget {
                 const Divider(height: 1),
                 Expanded(
                   child: reader.chapters.isEmpty
-                      ? const Center(child: Text('No chapters found'))
+                      ? const Center(
+                          child: Text(
+                            'No chapters found',
+                          ),
+                        )
                       : ListView.builder(
                           controller: scrollController,
                           itemCount: reader.chapters.length,
                           itemBuilder: (context, index) {
                             final chapter = reader.chapters[index];
                             return ListTile(
-                              onTap: () => onChapterSelected(chapter.href),
+                              onTap: () => onChapterSelected(
+                                chapter.href,
+                              ),
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 16,
                                 vertical: 4,
@@ -60,9 +73,10 @@ class ChaptersSheet extends StatelessWidget {
                                 height: 32,
                                 alignment: Alignment.center,
                                 decoration: BoxDecoration(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.primary.withValues(alpha: 0.1),
+                                  color: Theme.of(context).colorScheme.primary
+                                      .withValues(
+                                        alpha: 0.1,
+                                      ),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
@@ -80,7 +94,10 @@ class ChaptersSheet extends StatelessWidget {
                                 (chapter.title.trim().isNotEmpty
                                         ? chapter.title.trim()
                                         : 'Chapter ${index + 1}')
-                                    .replaceAll('\n', ' '),
+                                    .replaceAll(
+                                      '\n',
+                                      ' ',
+                                    ),
                                 style: Theme.of(context).textTheme.bodyMedium,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,

@@ -1,27 +1,21 @@
+import 'package:ereader/models/book.dart';
+import 'package:ereader/notifiers/reader_notifier.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../models/book.dart';
-import '../notifiers/reader_notifier.dart';
-
-/// Callback when a chapter is selected.
-typedef ChapterSelectedCallback = void Function(String href);
-
-/// Callback when settings are changed.
-typedef SettingsChangedCallback = void Function();
-
-/// Top bar for the reader screen with title, back button, and action buttons.
+/// Top bar for the reader screen with title, back button,
+/// and action buttons.
 class ReaderTopBar extends StatelessWidget {
-  final Book book;
-  final VoidCallback onChaptersTap;
-  final VoidCallback onSettingsTap;
-
   const ReaderTopBar({
-    super.key,
     required this.book,
     required this.onChaptersTap,
     required this.onSettingsTap,
+    super.key,
   });
+
+  final Book book;
+  final VoidCallback onChaptersTap;
+  final VoidCallback onSettingsTap;
 
   @override
   Widget build(BuildContext context) {
@@ -35,12 +29,18 @@ class ReaderTopBar extends StatelessWidget {
           child: SafeArea(
             bottom: false,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 4,
+                vertical: 8,
+              ),
               child: Row(
                 children: [
                   // Back button
                   IconButton(
-                    icon: Icon(Icons.arrow_back, color: colorScheme.onSurface),
+                    icon: Icon(
+                      Icons.arrow_back,
+                      color: colorScheme.onSurface,
+                    ),
                     onPressed: () => Navigator.pop(context),
                   ),
 

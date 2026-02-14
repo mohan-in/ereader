@@ -15,7 +15,7 @@ enum LineSpacing {
   compact('Compact', 1.2),
   normal('Normal', 1.5),
   relaxed('Relaxed', 1.8),
-  loose('Loose', 2.0);
+  loose('Loose', 2);
 
   const LineSpacing(this.displayName, this.value);
 

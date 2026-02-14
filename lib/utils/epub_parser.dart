@@ -9,25 +9,27 @@ import 'package:xml/xml.dart';
 
 /// Metadata extracted from an EPUB file.
 class EpubMetadata {
+  const EpubMetadata({required this.title, this.author, this.coverPath});
   final String title;
   final String? author;
   final String? coverPath;
-
-  const EpubMetadata({required this.title, this.author, this.coverPath});
 }
 
 /// Utility class for parsing EPUB files to extract metadata and assets.
 class EpubParser {
-  /// Parses an EPUB file to extract metadata (title, author) and the cover image.
-  /// The cover image is saved to the app's documents directory.
+  /// Parses an EPUB file to extract metadata (title,
+  /// author) and the cover image.
+  ///
+  /// The cover image is saved to the app's documents
+  /// directory.
   static Future<EpubMetadata> parse(String epubPath, String bookId) async {
-    String title = path.basename(epubPath); // Default title is filename
+    var title = path.basename(epubPath); // Default title is filename
     String? author;
     String? coverPath;
 
     try {
       final epubFile = File(epubPath);
-      if (!await epubFile.exists()) {
+      if (!epubFile.existsSync()) {
         return EpubMetadata(title: title);
       }
 
@@ -77,7 +79,7 @@ class EpubParser {
           }
 
           // 4. Extract Cover based on our robust logic
-          final ArchiveFile? coverFile = await _findCoverFile(
+          final coverFile = await _findCoverFile(
             archive,
             opfFile,
             document,
@@ -87,7 +89,7 @@ class EpubParser {
             // Save cover to app documents directory
             final appDir = await getApplicationDocumentsDirectory();
             final coversDir = Directory(path.join(appDir.path, 'covers'));
-            if (!await coversDir.exists()) {
+            if (!coversDir.existsSync()) {
               await coversDir.create(recursive: true);
             }
 
@@ -100,14 +102,14 @@ class EpubParser {
 
             coverPath = savePath;
           }
-        } catch (e) {
+        } on Exception catch (e) {
           debugPrint('EpubParser: Failed to parse OPF metadata: $e');
         }
       } else {
-        // Fallback: try to find cover by filename if no OPF found (rare)
-        // ... (We could add the pattern matching logic here if needed, but OPF is standard)
+        // Fallback: try to find cover by filename
+        // if no OPF found (rare, OPF is standard)
       }
-    } catch (e) {
+    } on Exception catch (e) {
       debugPrint('EpubParser: Failed to parse EPUB file: $e');
     }
 
@@ -167,7 +169,7 @@ class EpubParser {
 
       // Resolve path
       final opfDir = path.dirname(opfFile.name);
-      String fullPath = opfDir.isNotEmpty
+      var fullPath = opfDir.isNotEmpty
           ? path.posix.join(opfDir, coverHref)
           : coverHref;
       fullPath = path.posix.normalize(fullPath);
@@ -218,10 +220,10 @@ class EpubParser {
     if (coverPath == null) return;
     try {
       final file = File(coverPath);
-      if (await file.exists()) {
+      if (file.existsSync()) {
         await file.delete();
       }
-    } catch (e) {
+    } on Exception catch (e) {
       debugPrint('EpubParser: Failed to delete cover file: $e');
     }
   }
