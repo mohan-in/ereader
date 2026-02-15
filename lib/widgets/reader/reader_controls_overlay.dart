@@ -1,6 +1,6 @@
 import 'package:ereader/models/book.dart';
-import 'package:ereader/widgets/reader_bottom_bar.dart';
-import 'package:ereader/widgets/reader_top_bar.dart';
+import 'package:ereader/widgets/reader/reader_bottom_bar.dart';
+import 'package:ereader/widgets/reader/reader_top_bar.dart';
 import 'package:flutter/material.dart';
 
 class ReaderControlsOverlay extends StatelessWidget {
