@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 
 /// Service for handling file operations.
 class FileService {
@@ -15,6 +17,26 @@ class FileService {
       return result.files.map((file) => file.path).whereType<String>().toList();
     }
     return null;
+  }
+
+  /// Copies a file to the app's internal storage.
+  ///
+  /// Returns the path of the copied file.
+  Future<String> copyFileToAppDir(String sourcePath) async {
+    final appDir = await getApplicationDocumentsDirectory();
+    final fileName = path.basename(sourcePath);
+    final savedDir = Directory(path.join(appDir.path, 'books'));
+
+    if (!savedDir.existsSync()) {
+      await savedDir.create(recursive: true);
+    }
+
+    final newPath = path.join(savedDir.path, fileName);
+    final sourceFile = File(sourcePath);
+
+    await sourceFile.copy(newPath);
+
+    return newPath;
   }
 
   /// Deletes a file at the specified path.

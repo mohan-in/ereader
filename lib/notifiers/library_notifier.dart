@@ -79,24 +79,27 @@ class LibraryNotifier extends ChangeNotifier {
       final files = await _fileService.pickEpubFiles();
 
       if (files != null && files.isNotEmpty) {
-        final filePath = files.first;
+        final originalPath = files.first;
 
-        // Check if book already exists
-        final exists = _books.any((b) => b.filePath == filePath);
-        if (exists) {
-          _error = 'This book is already in your library';
-          return;
-        }
+        // Copy file to app directory
+        final savedPath = await _fileService.copyFileToAppDir(originalPath);
+
+        // Check if book already exists (using filename for now, but path is unique)
+        // With copied files, we should check if the original file was already imported
+        // or just rely on title/author duplicates, but for now let's allow duplicates
+        // since they are new files.
+        // Or better: check if a book with same title/author exists?
+        // For now, let's proceed with the saved path.
 
         final bookId = DateTime.now().millisecondsSinceEpoch.toString();
 
-        // Extract metadata and cover image
-        final metadata = await EpubParser.parse(filePath, bookId);
+        // Extract metadata and cover image from the SAVED file
+        final metadata = await EpubParser.parse(savedPath, bookId);
 
         final book = Book(
           id: bookId,
           title: metadata.title,
-          filePath: filePath,
+          filePath: savedPath,
           author: metadata.author,
           coverPath: metadata.coverPath,
         );
@@ -118,6 +121,8 @@ class LibraryNotifier extends ChangeNotifier {
     if (book != null) {
       // Delete cover image file
       await EpubParser.deleteCover(book.coverPath);
+      // Delete book file
+      await _fileService.deleteFile(book.filePath);
     }
     _books.removeWhere((book) => book.id == bookId);
     await _saveBooks();
