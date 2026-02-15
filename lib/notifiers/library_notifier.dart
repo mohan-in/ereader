@@ -1,14 +1,19 @@
 import 'package:ereader/models/book.dart';
+import 'package:ereader/repositories/book_repository.dart';
+import 'package:ereader/services/file_service.dart';
 import 'package:ereader/utils/epub_parser.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
-/// Key for storing books in SharedPreferences.
-const String _booksKey = 'library_books';
 
 /// Manages the book library state with persistence.
 class LibraryNotifier extends ChangeNotifier {
+  LibraryNotifier({
+    required BookRepository bookRepository,
+    required FileService fileService,
+  }) : _bookRepository = bookRepository,
+       _fileService = fileService;
+
+  final BookRepository _bookRepository;
+  final FileService _fileService;
   bool _isLoading = false;
   String? _error;
   bool _initialized = false;
@@ -43,13 +48,8 @@ class LibraryNotifier extends ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
-      final prefs = await SharedPreferences.getInstance();
-      final booksJson = prefs.getString(_booksKey);
-
-      if (booksJson != null && booksJson.isNotEmpty) {
-        final loadedBooks = Book.decodeBooks(booksJson);
-        _books.addAll(loadedBooks);
-      }
+      final loadedBooks = await _bookRepository.loadBooks();
+      _books.addAll(loadedBooks);
 
       _initialized = true;
     } on Exception catch (e) {
@@ -63,9 +63,7 @@ class LibraryNotifier extends ChangeNotifier {
   /// Save books to storage.
   Future<void> _saveBooks() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final booksJson = Book.encodeBooks(_books);
-      await prefs.setString(_booksKey, booksJson);
+      await _bookRepository.saveBooks(_books);
     } on Exception catch (e) {
       debugPrint('Failed to save books: $e');
     }
@@ -78,13 +76,10 @@ class LibraryNotifier extends ChangeNotifier {
       _error = null;
       notifyListeners();
 
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['epub'],
-      );
+      final files = await _fileService.pickEpubFiles();
 
-      if (result != null && result.files.single.path != null) {
-        final filePath = result.files.single.path!;
+      if (files != null && files.isNotEmpty) {
+        final filePath = files.first;
 
         // Check if book already exists
         final exists = _books.any((b) => b.filePath == filePath);

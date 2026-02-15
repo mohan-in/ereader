@@ -1,15 +1,14 @@
 import 'dart:async';
-import 'dart:io';
-import 'dart:ui' show PointerDeviceKind;
 
 import 'package:ereader/models/book.dart';
 import 'package:ereader/notifiers/library_notifier.dart';
 import 'package:ereader/notifiers/reader_notifier.dart';
 import 'package:ereader/utils/epub_style_injector.dart';
 import 'package:ereader/widgets/chapters_sheet.dart';
-import 'package:ereader/widgets/reader_bottom_bar.dart';
+import 'package:ereader/widgets/reader/reader_content.dart';
+import 'package:ereader/widgets/reader/reader_controls_overlay.dart';
+import 'package:ereader/widgets/reader/reader_footer.dart';
 import 'package:ereader/widgets/reader_settings_sheet.dart';
-import 'package:ereader/widgets/reader_top_bar.dart';
 import 'package:ereader/widgets/text_selection_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -32,20 +31,12 @@ class ReaderScreen extends StatefulWidget {
 }
 
 class _ReaderScreenState extends State<ReaderScreen> {
-  // Constants
-  static const double _tapEdgeThreshold = 0.25;
   static const Duration _navigationDelay = Duration(milliseconds: 500);
   static const Duration _postNavigationDelay = Duration(milliseconds: 200);
-  static const double _swipeThreshold = 10;
 
   late final EpubController _epubController;
   bool _showControls = false;
   bool _isLocationLoaded = false;
-
-  // Track pointer movement to distinguish taps from swipes
-  double _pointerStartX = 0;
-  double _pointerStartY = 0;
-  bool _isSwipeGesture = false;
 
   // Selection state
   final ValueNotifier<EpubTextSelection?> _selectionNotifier = ValueNotifier(
@@ -137,19 +128,6 @@ class _ReaderScreenState extends State<ReaderScreen> {
     });
   }
 
-  void _handleTouch(
-    double normalizedX,
-    double normalizedY,
-  ) {
-    if (normalizedX < _tapEdgeThreshold) {
-      _epubController.prev();
-    } else if (normalizedX > (1.0 - _tapEdgeThreshold)) {
-      _epubController.next();
-    } else {
-      _toggleControls();
-    }
-  }
-
   void _seekTo(double progress) {
     if (_isLocationLoaded) {
       _epubController.toProgressPercentage(
@@ -217,207 +195,128 @@ class _ReaderScreenState extends State<ReaderScreen> {
           child: Stack(
             children: [
               // EPUB Viewer
-              Positioned.fill(
-                child: Listener(
-                  onPointerDown: (e) {
-                    _pointerStartX = e.position.dx;
-                    _pointerStartY = e.position.dy;
-                    _isSwipeGesture = false;
-                  },
-                  onPointerMove: (e) {
-                    if (!_isSwipeGesture) {
-                      final dx = (e.position.dx - _pointerStartX).abs();
-                      final dy = (e.position.dy - _pointerStartY).abs();
-                      if (dx > _swipeThreshold || dy > _swipeThreshold) {
-                        _isSwipeGesture = true;
-                      }
-                    }
-                  },
-                  onPointerUp: (e) {
-                    if (e.kind == PointerDeviceKind.mouse && !_isSwipeGesture) {
-                      final size = MediaQuery.of(context).size;
-                      final normalizedX = e.position.dx / size.width;
-                      final normalizedY = e.position.dy / size.height;
-                      _handleTouch(
-                        normalizedX,
-                        normalizedY,
-                      );
-                    }
-                  },
-                  child: EpubViewer(
-                    epubSource: EpubSource.fromFile(
-                      File(widget.book.filePath),
-                    ),
-                    epubController: _epubController,
-                    displaySettings: EpubDisplaySettings(),
-                    onChaptersLoaded: (chapters) {
-                      if (!mounted) return;
-                      context.read<ReaderNotifier>().setChapters(chapters);
-                    },
-                    onLocationLoaded: () {
-                      setState(() {
-                        _isLocationLoaded = true;
-                      });
-                    },
-                    onEpubLoaded: () async {
-                      if (!mounted) return;
-                      final libraryNotifier = context.read<LibraryNotifier>();
-                      context.read<ReaderNotifier>().setLoading(loading: false);
-
-                      _applyFormattingSettings();
-
-                      if (_savedCfiToRestore != null &&
-                          _savedCfiToRestore!.isNotEmpty) {
-                        final cfiToNavigate = _savedCfiToRestore!;
-                        _savedCfiToRestore = null;
-                        await Future<void>.delayed(
-                          _navigationDelay,
-                        );
-                        if (!mounted) return;
-                        _epubController.display(
-                          cfi: cfiToNavigate,
-                        );
-                        await Future<void>.delayed(
-                          _postNavigationDelay,
-                        );
-                      }
-                      if (mounted) {
-                        setState(() {
-                          _isRestoringPosition = false;
-                        });
-                      }
-
-                      try {
-                        final metadata = await _epubController.getMetadata();
-                        if (!mounted) return;
-                        unawaited(
-                          libraryNotifier.updateBookMetadata(
-                            widget.book.id,
-                            title: metadata.title,
-                            author: metadata.author,
-                          ),
-                        );
-                      } on Exception catch (e) {
-                        debugPrint(
-                          'Failed to load metadata: $e',
-                        );
-                      }
-                    },
-                    onRelocated: (location) {
-                      if (!mounted || !_isLocationLoaded) {
-                        return;
-                      }
-
-                      if (_isInitialNavigation) {
-                        _isInitialNavigation = false;
-                        return;
-                      }
-
-                      context.read<ReaderNotifier>().setCurrentLocation(
-                        location,
-                      );
-                      unawaited(
-                        context.read<LibraryNotifier>().updateReadingProgress(
-                          widget.book.id,
-                          location.startCfi,
-                          progress: location.progress,
+              ReaderContent(
+                book: widget.book,
+                epubController: _epubController,
+                overlayEntry: _isRestoringPosition
+                    ? ColoredBox(
+                        color: themeBackground,
+                        child: const Center(
+                          child: CircularProgressIndicator(),
                         ),
-                      );
-                    },
-                    onTextSelected: (selection) {
-                      if (selection.selectedText.isNotEmpty) {
-                        _selectionNotifier.value = selection;
-                        if (!_isSelectionMenuOpen) {
-                          _showTextSelectionMenu();
-                        }
-                      }
-                    },
-                    onTouchUp: (x, y) {
-                      if (_isSwipeGesture) return;
-                      _handleTouch(x, y);
-                    },
-                  ),
-                ),
-              ),
+                      )
+                    : null,
+                onTapLeft: () => _epubController.prev(),
+                onTapRight: () => _epubController.next(),
+                onTapCenter: _toggleControls,
+                onChaptersLoaded: (chapters) {
+                  if (!mounted) return;
+                  context.read<ReaderNotifier>().setChapters(chapters);
+                },
+                onLocationLoaded: () {
+                  setState(() {
+                    _isLocationLoaded = true;
+                  });
+                },
+                onEpubLoaded: () async {
+                  if (!mounted) return;
+                  final libraryNotifier = context.read<LibraryNotifier>();
+                  context.read<ReaderNotifier>().setLoading(loading: false);
 
-              // Loading overlay while restoring position
-              if (_isRestoringPosition)
-                Positioned.fill(
-                  child: ColoredBox(
-                    color: themeBackground,
-                    child: const Center(
-                      child: CircularProgressIndicator(),
+                  _applyFormattingSettings();
+
+                  if (_savedCfiToRestore != null &&
+                      _savedCfiToRestore!.isNotEmpty) {
+                    final cfiToNavigate = _savedCfiToRestore!;
+                    _savedCfiToRestore = null;
+                    await Future<void>.delayed(
+                      _navigationDelay,
+                    );
+                    if (!mounted) return;
+                    _epubController.display(
+                      cfi: cfiToNavigate,
+                    );
+                    await Future<void>.delayed(
+                      _postNavigationDelay,
+                    );
+                  }
+                  if (mounted) {
+                    setState(() {
+                      _isRestoringPosition = false;
+                    });
+                  }
+
+                  try {
+                    final metadata = await _epubController.getMetadata();
+                    if (!mounted) return;
+                    unawaited(
+                      libraryNotifier.updateBookMetadata(
+                        widget.book.id,
+                        title: metadata.title,
+                        author: metadata.author,
+                      ),
+                    );
+                  } on Exception catch (e) {
+                    debugPrint(
+                      'Failed to load metadata: $e',
+                    );
+                  }
+                },
+                onRelocated: (location) {
+                  if (!mounted || !_isLocationLoaded) {
+                    return;
+                  }
+
+                  if (_isInitialNavigation) {
+                    _isInitialNavigation = false;
+                    return;
+                  }
+
+                  context.read<ReaderNotifier>().setCurrentLocation(
+                    location,
+                  );
+                  unawaited(
+                    context.read<LibraryNotifier>().updateReadingProgress(
+                      widget.book.id,
+                      location.startCfi,
+                      progress: location.progress,
                     ),
-                  ),
-                ),
+                  );
+                },
+                onTextSelected: (selection) {
+                  if (selection.selectedText.isNotEmpty) {
+                    _selectionNotifier.value = selection;
+                    if (!_isSelectionMenuOpen) {
+                      _showTextSelectionMenu();
+                    }
+                  }
+                },
+              ),
 
               // Progress Footer
               if ((_isLocationLoaded || widget.book.progress > 0) &&
                   !_showControls)
-                Positioned(
-                  right: 16,
-                  bottom: 8,
-                  child: Consumer<ReaderNotifier>(
-                    builder: (context, reader, child) {
-                      final progress =
-                          reader.currentLocation?.progress ??
-                          widget.book.progress;
-                      return Text(
-                        '${(progress * 100).toStringAsFixed(0)}%',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: themeTextColor.withValues(
-                            alpha: 0.6,
-                          ),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      );
-                    },
-                  ),
+                ReaderFooter(
+                  book: widget.book,
+                  themeTextColor: themeTextColor,
                 ),
 
               // Controls overlay
-              if (_showControls) ...[
-                Positioned.fill(
-                  child: GestureDetector(
-                    onTap: _toggleControls,
-                    behavior: HitTestBehavior.translucent,
-                    child: Container(
-                      color: Colors.transparent,
-                    ),
-                  ),
-                ),
-
-                // Top bar
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: ReaderTopBar(
-                    book: widget.book,
-                    onChaptersTap: () {
-                      _toggleControls();
-                      _showChaptersSheet();
-                    },
-                    onSettingsTap: () {
-                      _toggleControls();
-                      _showFontSettings();
-                    },
-                  ),
-                ),
-
-                // Bottom bar with seek
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: ReaderBottomBar(
-                    book: widget.book,
-                    isLocationLoaded: _isLocationLoaded,
-                    onSeek: _seekTo,
-                  ),
-                ),
-              ],
+              ReaderControlsOverlay(
+                book: widget.book,
+                isVisible: _showControls,
+                isLocationLoaded: _isLocationLoaded,
+                onToggleControls: _toggleControls,
+                onChaptersTap: () {
+                  _toggleControls();
+                  _showChaptersSheet();
+                },
+                onSettingsTap: () {
+                  _toggleControls();
+                  _showFontSettings();
+                },
+                onSeek: _seekTo,
+              ),
             ],
           ),
         ),
