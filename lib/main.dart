@@ -48,7 +48,6 @@ class EReaderApp extends StatelessWidget {
       ],
       child: MaterialApp(
         title: 'eReader',
-        debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         themeMode: ThemeMode.light,
         home: const LibraryScreen(),
