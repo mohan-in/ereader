@@ -92,34 +92,26 @@ class _ReaderBottomBarState extends State<ReaderBottomBar> {
                             ),
                         child: Slider(
                           value: displayValue,
-                          onChangeStart: widget.isLocationLoaded
-                              ? (value) {
-                                  setState(() {
-                                    _isDraggingSlider = true;
-                                    _sliderValue = value;
-                                  });
-                                }
-                              : null,
-                          onChanged: widget.isLocationLoaded
-                              ? (value) {
-                                  setState(() {
-                                    _sliderValue = value;
-                                  });
-                                }
-                              : null,
-                          onChangeEnd: widget.isLocationLoaded
-                              ? (value) {
-                                  context
-                                      .read<ReaderNotifier>()
-                                      .setSeekTargetProgress(
-                                        value,
-                                      );
-                                  setState(() {
-                                    _isDraggingSlider = false;
-                                  });
-                                  widget.onSeek(value);
-                                }
-                              : null,
+                          onChangeStart: (value) {
+                            setState(() {
+                              _isDraggingSlider = true;
+                              _sliderValue = value;
+                            });
+                          },
+                          onChanged: (value) {
+                            setState(() {
+                              _sliderValue = value;
+                            });
+                          },
+                          onChangeEnd: (value) {
+                            context
+                                .read<ReaderNotifier>()
+                                .setSeekTargetProgress(value);
+                            setState(() {
+                              _isDraggingSlider = false;
+                            });
+                            widget.onSeek(value);
+                          },
                         ),
                       ),
                     ),

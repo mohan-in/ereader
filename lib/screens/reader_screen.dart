@@ -53,9 +53,13 @@ class _ReaderScreenState extends State<ReaderScreen> {
   // Flag to show loading overlay while restoring position
   bool _isRestoringPosition = false;
 
+  late final LibraryNotifier _libraryNotifier;
+  double? _pendingSeekProgress;
+
   @override
   void initState() {
     super.initState();
+    _libraryNotifier = context.read<LibraryNotifier>();
     _epubController = EpubController();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -74,6 +78,33 @@ class _ReaderScreenState extends State<ReaderScreen> {
   void dispose() {
     _selectionNotifier.dispose();
     super.dispose();
+  }
+
+  /// Fire-and-forget save of the current location.
+  /// Used when the user closes the screen to ensure the latest location is
+  /// saved even if `onRelocated` hasn't fired yet.
+  void _saveCurrentLocation() {
+    try {
+      if (_isLocationLoaded && _epubController.webViewController != null) {
+        final bookId = widget.book.id;
+        unawaited(
+          _epubController
+              .getCurrentLocation()
+              .then((location) {
+                unawaited(
+                  _libraryNotifier.updateReadingProgress(
+                    bookId,
+                    location.startCfi,
+                    progress: location.progress,
+                  ),
+                );
+              })
+              .catchError((_) {}),
+        );
+      }
+    } on Exception catch (_) {
+      // Ignore errors during dispose
+    }
   }
 
   /// Applies all formatting settings to the epub viewer.
@@ -133,6 +164,12 @@ class _ReaderScreenState extends State<ReaderScreen> {
       _epubController.toProgressPercentage(
         progress.clamp(0.0, 1.0),
       );
+    } else {
+      // Save it to be applied when locations finally load
+      setState(() {
+        _pendingSeekProgress = progress;
+        _isRestoringPosition = true;
+      });
     }
   }
 
@@ -189,135 +226,156 @@ class _ReaderScreenState extends State<ReaderScreen> {
     return Focus(
       autofocus: true,
       onKeyEvent: _handleKeyEvent,
-      child: Scaffold(
-        backgroundColor: themeBackground,
-        body: SafeArea(
-          child: Stack(
-            children: [
-              // EPUB Viewer
-              ReaderContent(
-                book: widget.book,
-                epubController: _epubController,
-                overlayEntry: _isRestoringPosition
-                    ? ColoredBox(
-                        color: themeBackground,
-                        child: const Center(
-                          child: CircularProgressIndicator(),
-                        ),
-                      )
-                    : null,
-                onTapLeft: () => _epubController.prev(),
-                onTapRight: () => _epubController.next(),
-                onTapCenter: _toggleControls,
-                onChaptersLoaded: (chapters) {
-                  if (!mounted) return;
-                  context.read<ReaderNotifier>().setChapters(chapters);
-                },
-                onLocationLoaded: () {
-                  setState(() {
-                    _isLocationLoaded = true;
-                  });
-                },
-                onEpubLoaded: () async {
-                  if (!mounted) return;
-                  final libraryNotifier = context.read<LibraryNotifier>();
-                  context.read<ReaderNotifier>().setLoading(loading: false);
-
-                  _applyFormattingSettings();
-
-                  if (_savedCfiToRestore != null &&
-                      _savedCfiToRestore!.isNotEmpty) {
-                    final cfiToNavigate = _savedCfiToRestore!;
-                    _savedCfiToRestore = null;
-                    await Future<void>.delayed(
-                      _navigationDelay,
-                    );
+      child: PopScope(
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) {
+            _saveCurrentLocation();
+          }
+        },
+        child: Scaffold(
+          backgroundColor: themeBackground,
+          body: SafeArea(
+            child: Stack(
+              children: [
+                // EPUB Viewer
+                ReaderContent(
+                  book: widget.book,
+                  epubController: _epubController,
+                  overlayEntry: _isRestoringPosition
+                      ? ColoredBox(
+                          color: themeBackground,
+                          child: const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        )
+                      : null,
+                  onTapLeft: () => _epubController.prev(),
+                  onTapRight: () => _epubController.next(),
+                  onTapCenter: _toggleControls,
+                  onChaptersLoaded: (chapters) {
                     if (!mounted) return;
-                    _epubController.display(
-                      cfi: cfiToNavigate,
-                    );
-                    await Future<void>.delayed(
-                      _postNavigationDelay,
-                    );
-                  }
-                  if (mounted) {
+                    context.read<ReaderNotifier>().setChapters(chapters);
+                  },
+                  onLocationLoaded: () {
+                    if (!mounted) return;
                     setState(() {
-                      _isRestoringPosition = false;
+                      _isLocationLoaded = true;
                     });
-                  }
-
-                  try {
-                    final metadata = await _epubController.getMetadata();
+                    if (_pendingSeekProgress != null) {
+                      _seekTo(_pendingSeekProgress!);
+                      _pendingSeekProgress = null;
+                      setState(() {
+                        _isRestoringPosition = false;
+                      });
+                    }
+                  },
+                  onEpubLoaded: () async {
                     if (!mounted) return;
+                    final libraryNotifier = context.read<LibraryNotifier>();
+                    context.read<ReaderNotifier>().setLoading(loading: false);
+
+                    _applyFormattingSettings();
+
+                    if (_savedCfiToRestore != null &&
+                        _savedCfiToRestore!.isNotEmpty) {
+                      final cfiToNavigate = _savedCfiToRestore!;
+                      _savedCfiToRestore = null;
+                      await Future<void>.delayed(
+                        _navigationDelay,
+                      );
+                      if (!mounted) return;
+                      _epubController.display(
+                        cfi: cfiToNavigate,
+                      );
+                      await Future<void>.delayed(
+                        _postNavigationDelay,
+                      );
+                    }
+                    if (mounted) {
+                      setState(() {
+                        _isRestoringPosition = false;
+                      });
+                    }
+
+                    try {
+                      final metadata = await _epubController.getMetadata();
+                      if (!mounted) return;
+                      unawaited(
+                        libraryNotifier.updateBookMetadata(
+                          widget.book.id,
+                          title: metadata.title,
+                          author: metadata.author,
+                        ),
+                      );
+                    } on Exception catch (e) {
+                      debugPrint(
+                        'Failed to load metadata: $e',
+                      );
+                    }
+                  },
+                  onRelocated: (location) {
+                    if (!_isLocationLoaded) {
+                      return;
+                    }
+
+                    if (_isInitialNavigation) {
+                      _isInitialNavigation = false;
+                      return;
+                    }
+
+                    if (mounted) {
+                      context.read<ReaderNotifier>().setCurrentLocation(
+                        location,
+                      );
+                    }
+
+                    // Always try to save the progress to library
+                    // even if unmounted, to prevent dropped locations
+                    // when the user closes during pagination.
                     unawaited(
-                      libraryNotifier.updateBookMetadata(
+                      _libraryNotifier.updateReadingProgress(
                         widget.book.id,
-                        title: metadata.title,
-                        author: metadata.author,
+                        location.startCfi,
+                        progress: location.progress,
                       ),
                     );
-                  } on Exception catch (e) {
-                    debugPrint(
-                      'Failed to load metadata: $e',
-                    );
-                  }
-                },
-                onRelocated: (location) {
-                  if (!mounted || !_isLocationLoaded) {
-                    return;
-                  }
-
-                  if (_isInitialNavigation) {
-                    _isInitialNavigation = false;
-                    return;
-                  }
-
-                  context.read<ReaderNotifier>().setCurrentLocation(
-                    location,
-                  );
-                  unawaited(
-                    context.read<LibraryNotifier>().updateReadingProgress(
-                      widget.book.id,
-                      location.startCfi,
-                      progress: location.progress,
-                    ),
-                  );
-                },
-                onTextSelected: (selection) {
-                  if (selection.selectedText.isNotEmpty) {
-                    _selectionNotifier.value = selection;
-                    if (!_isSelectionMenuOpen) {
-                      _showTextSelectionMenu();
+                  },
+                  onTextSelected: (selection) {
+                    if (selection.selectedText.isNotEmpty) {
+                      _selectionNotifier.value = selection;
+                      if (!_isSelectionMenuOpen) {
+                        _showTextSelectionMenu();
+                      }
                     }
-                  }
-                },
-              ),
-
-              // Progress Footer
-              if ((_isLocationLoaded || widget.book.progress > 0) &&
-                  !_showControls)
-                ReaderFooter(
-                  book: widget.book,
-                  themeTextColor: themeTextColor,
+                  },
                 ),
 
-              // Controls overlay
-              ReaderControlsOverlay(
-                book: widget.book,
-                isVisible: _showControls,
-                isLocationLoaded: _isLocationLoaded,
-                onToggleControls: _toggleControls,
-                onChaptersTap: () {
-                  _toggleControls();
-                  _showChaptersSheet();
-                },
-                onSettingsTap: () {
-                  _toggleControls();
-                  _showFontSettings();
-                },
-                onSeek: _seekTo,
-              ),
-            ],
+                // Progress Footer
+                if ((_isLocationLoaded || widget.book.progress > 0) &&
+                    !_showControls)
+                  ReaderFooter(
+                    book: widget.book,
+                    themeTextColor: themeTextColor,
+                  ),
+
+                // Controls overlay
+                ReaderControlsOverlay(
+                  book: widget.book,
+                  isVisible: _showControls,
+                  isLocationLoaded: _isLocationLoaded,
+                  onToggleControls: _toggleControls,
+                  onChaptersTap: () {
+                    _toggleControls();
+                    _showChaptersSheet();
+                  },
+                  onSettingsTap: () {
+                    _toggleControls();
+                    _showFontSettings();
+                  },
+                  onSeek: _seekTo,
+                ),
+              ],
+            ),
           ),
         ),
       ),

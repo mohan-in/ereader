@@ -1,16 +1,39 @@
+import 'dart:async';
+
 import 'package:ereader/models/book.dart';
 import 'package:ereader/repositories/book_repository.dart';
 import 'package:ereader/services/file_service.dart';
 import 'package:ereader/utils/epub_parser.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 
 /// Manages the book library state with persistence.
-class LibraryNotifier extends ChangeNotifier {
+class LibraryNotifier extends ChangeNotifier with WidgetsBindingObserver {
   LibraryNotifier({
     required BookRepository bookRepository,
     required FileService fileService,
   }) : _bookRepository = bookRepository,
-       _fileService = fileService;
+       _fileService = fileService {
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _saveTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Force a save if the app is backgrounded and there are pending changes
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      if (_saveTimer?.isActive ?? false) {
+        _saveTimer?.cancel();
+        unawaited(_saveBooks());
+      }
+    }
+  }
 
   final BookRepository _bookRepository;
   final FileService _fileService;
@@ -18,6 +41,7 @@ class LibraryNotifier extends ChangeNotifier {
   String? _error;
   bool _initialized = false;
   final List<Book> _books = [];
+  Timer? _saveTimer;
 
   List<Book> get books {
     final sorted = List<Book>.from(_books)
@@ -84,11 +108,11 @@ class LibraryNotifier extends ChangeNotifier {
         // Copy file to app directory
         final savedPath = await _fileService.copyFileToAppDir(originalPath);
 
-        // Check if book already exists (using filename for now, but path is unique)
-        // With copied files, we should check if the original file was already imported
-        // or just rely on title/author duplicates, but for now let's allow duplicates
-        // since they are new files.
-        // Or better: check if a book with same title/author exists?
+        // Check if book already exists (using filename for now, but
+        // path is unique). With copied files, we should check if the
+        // original file was already imported or just rely on title/author
+        // duplicates, but for now let's allow duplicates since they are
+        // new files. Or better: check if a book with same title/author exists?
         // For now, let's proceed with the saved path.
 
         final bookId = DateTime.now().millisecondsSinceEpoch.toString();
@@ -142,8 +166,15 @@ class LibraryNotifier extends ChangeNotifier {
         lastReadAt: DateTime.now(),
         progress: progress,
       );
-      await _saveBooks();
+
       notifyListeners();
+
+      // Debounce saving to disk by 2 seconds to reduce I/O
+      _saveTimer?.cancel();
+      _saveTimer = Timer(
+        const Duration(seconds: 2),
+        () => unawaited(_saveBooks()),
+      );
     }
   }
 
