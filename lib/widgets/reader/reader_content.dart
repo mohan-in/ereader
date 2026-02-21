@@ -40,6 +40,7 @@ class ReaderContent extends StatefulWidget {
 class _ReaderContentState extends State<ReaderContent> {
   static const double _tapEdgeThreshold = 0.25;
   static const double _swipeThreshold = 10;
+  static final EpubDisplaySettings _displaySettings = EpubDisplaySettings();
 
   double _pointerStartX = 0;
   double _pointerStartY = 0;
@@ -88,7 +89,7 @@ class _ReaderContentState extends State<ReaderContent> {
                 File(widget.book.filePath),
               ),
               epubController: widget.epubController,
-              displaySettings: EpubDisplaySettings(),
+              displaySettings: _displaySettings,
               onChaptersLoaded: widget.onChaptersLoaded,
               onLocationLoaded: widget.onLocationLoaded,
               onEpubLoaded: widget.onEpubLoaded,

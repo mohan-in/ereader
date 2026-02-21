@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:ereader/notifiers/library_notifier.dart';
 import 'package:ereader/notifiers/reader_notifier.dart';
+import 'package:ereader/widgets/sheet_drag_handle.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -39,19 +40,7 @@ class ReaderSettingsSheet extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Handle
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(
-                    bottom: 24,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[400],
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
+              const SheetDragHandle(),
 
               Center(
                 child: Text(
@@ -76,19 +65,8 @@ class ReaderSettingsSheet extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: ReaderTheme.values.map((theme) {
                   final isSelected = reader.theme == theme;
-                  final bgColor = Color(
-                    int.parse(
-                      theme.backgroundColor.replaceFirst('#', '0xFF'),
-                    ),
-                  );
-                  final textColor = Color(
-                    int.parse(
-                      theme.textColor.replaceFirst(
-                        '#',
-                        '0xFF',
-                      ),
-                    ),
-                  );
+                  final bgColor = theme.backgroundColor;
+                  final textColor = theme.textColor;
                   return Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,

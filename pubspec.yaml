@@ -9,6 +9,7 @@ environment:
 dependencies:
   archive: ^4.0.7
   cupertino_icons: ^1.0.8
+  equatable: ^2.0.8
   file_picker: ^8.0.0+1
   flutter:
     sdk: flutter

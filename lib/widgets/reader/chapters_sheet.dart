@@ -1,4 +1,5 @@
 import 'package:ereader/notifiers/reader_notifier.dart';
+import 'package:ereader/widgets/sheet_drag_handle.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -23,19 +24,7 @@ class ChaptersSheet extends StatelessWidget {
             return Column(
               children: [
                 // Handle
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.symmetric(
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[400],
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
+                const SheetDragHandle(),
                 Padding(
                   padding: const EdgeInsets.only(
                     bottom: 12,

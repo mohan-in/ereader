@@ -1,6 +1,10 @@
 export 'package:ereader/widgets/book_card.dart';
 export 'package:ereader/widgets/reader/chapters_sheet.dart';
 export 'package:ereader/widgets/reader/reader_bottom_bar.dart';
+export 'package:ereader/widgets/reader/reader_content.dart';
+export 'package:ereader/widgets/reader/reader_controls_overlay.dart';
+export 'package:ereader/widgets/reader/reader_footer.dart';
 export 'package:ereader/widgets/reader/reader_settings_sheet.dart';
 export 'package:ereader/widgets/reader/reader_top_bar.dart';
 export 'package:ereader/widgets/reader/text_selection_sheet.dart';
+export 'package:ereader/widgets/sheet_drag_handle.dart';

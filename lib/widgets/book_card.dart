@@ -63,6 +63,7 @@ class BookCard extends StatelessWidget {
                     ? Image.file(
                         File(book.coverPath!),
                         fit: BoxFit.fill,
+                        cacheWidth: 300,
                         errorBuilder:
                             (
                               context,

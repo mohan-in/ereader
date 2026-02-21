@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:ereader/widgets/sheet_drag_handle.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_epub_viewer/flutter_epub_viewer.dart';
@@ -27,15 +28,7 @@ class TextSelectionSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           // Handle
-          Container(
-            width: 40,
-            height: 4,
-            margin: const EdgeInsets.only(bottom: 16),
-            decoration: BoxDecoration(
-              color: Colors.grey[400],
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
+          const SheetDragHandle(),
 
           // Selected text preview
           Container(

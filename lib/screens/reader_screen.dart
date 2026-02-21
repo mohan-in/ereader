@@ -130,8 +130,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
     final styleScript = EpubStyleInjector.buildStyleScript(
       lineHeight: reader.lineSpacing.value,
       textAlign: reader.textAlignment.cssValue,
-      bgColor: reader.theme.backgroundColor,
-      textColor: reader.theme.textColor,
+      bgColor: reader.theme.backgroundCssHex,
+      textColor: reader.theme.textCssHex,
     );
 
     unawaited(
@@ -211,17 +211,11 @@ class _ReaderScreenState extends State<ReaderScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final reader = context.watch<ReaderNotifier>();
-    final themeBackground = Color(
-      int.parse(
-        reader.theme.backgroundColor.replaceFirst('#', '0xFF'),
-      ),
+    final readerTheme = context.select<ReaderNotifier, ReaderTheme>(
+      (r) => r.theme,
     );
-    final themeTextColor = Color(
-      int.parse(
-        reader.theme.textColor.replaceFirst('#', '0xFF'),
-      ),
-    );
+    final themeBackground = readerTheme.backgroundColor;
+    final themeTextColor = readerTheme.textColor;
 
     return Focus(
       autofocus: true,

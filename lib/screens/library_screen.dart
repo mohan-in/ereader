@@ -4,6 +4,7 @@ import 'package:ereader/models/book.dart';
 import 'package:ereader/notifiers/library_notifier.dart';
 import 'package:ereader/screens/reader_screen.dart';
 import 'package:ereader/widgets/book_card.dart';
+import 'package:ereader/widgets/sheet_drag_handle.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -206,19 +207,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(
-                    bottom: 16,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
+                const SheetDragHandle(),
                 ListTile(
                   leading: Container(
                     padding: const EdgeInsets.all(8),

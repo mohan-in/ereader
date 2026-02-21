@@ -61,10 +61,9 @@ class _ReaderBottomBarState extends State<ReaderBottomBar> {
                       width: 48,
                       child: Text(
                         '${(displayValue * 100).toInt()}%',
-                        style: TextStyle(
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: colorScheme.onSurface,
                           fontWeight: FontWeight.bold,
-                          fontSize: 14,
                         ),
                         textAlign: TextAlign.center,
                       ),

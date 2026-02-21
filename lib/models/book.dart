@@ -1,7 +1,13 @@
 import 'dart:convert';
 
+import 'package:equatable/equatable.dart';
+
+/// Sentinel used by `copyWith` to distinguish "not provided" from
+/// an explicit `null`, allowing optional fields to be cleared.
+const _sentinel = Object();
+
 /// Book model representing an EPUB book in the library.
-class Book {
+class Book extends Equatable {
   const Book({
     required this.id,
     required this.title,
@@ -53,14 +59,34 @@ class Book {
   final int lineSpacingIndex;
   final int textAlignmentIndex;
 
+  @override
+  List<Object?> get props => [
+    id,
+    title,
+    author,
+    filePath,
+    coverPath,
+    lastReadCfi,
+    lastReadAt,
+    progress,
+    fontSize,
+    fontIndex,
+    lineSpacingIndex,
+    textAlignmentIndex,
+  ];
+
+  /// Creates a copy with the given fields replaced.
+  ///
+  /// Nullable fields accept an explicit `null` to clear the value.
+  /// Pass nothing (omit the parameter) to keep the current value.
   Book copyWith({
     String? id,
     String? title,
-    String? author,
+    Object? author = _sentinel,
     String? filePath,
-    String? coverPath,
-    String? lastReadCfi,
-    DateTime? lastReadAt,
+    Object? coverPath = _sentinel,
+    Object? lastReadCfi = _sentinel,
+    Object? lastReadAt = _sentinel,
     double? progress,
     double? fontSize,
     int? fontIndex,
@@ -71,10 +97,14 @@ class Book {
       id: id ?? this.id,
       title: title ?? this.title,
       filePath: filePath ?? this.filePath,
-      author: author ?? this.author,
-      coverPath: coverPath ?? this.coverPath,
-      lastReadCfi: lastReadCfi ?? this.lastReadCfi,
-      lastReadAt: lastReadAt ?? this.lastReadAt,
+      author: author == _sentinel ? this.author : author as String?,
+      coverPath: coverPath == _sentinel ? this.coverPath : coverPath as String?,
+      lastReadCfi: lastReadCfi == _sentinel
+          ? this.lastReadCfi
+          : lastReadCfi as String?,
+      lastReadAt: lastReadAt == _sentinel
+          ? this.lastReadAt
+          : lastReadAt as DateTime?,
       progress: progress ?? this.progress,
       fontSize: fontSize ?? this.fontSize,
       fontIndex: fontIndex ?? this.fontIndex,
