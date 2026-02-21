@@ -1,9 +1,12 @@
+import 'dart:ui';
+
 import 'package:ereader/models/book.dart';
 import 'package:ereader/notifiers/reader_notifier.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-/// Bottom bar for the reader screen with progress slider.
+/// Bottom bar for the reader screen with frosted glass effect,
+/// chapter name, and progress slider.
 class ReaderBottomBar extends StatefulWidget {
   const ReaderBottomBar({
     required this.book,
@@ -26,8 +29,6 @@ class _ReaderBottomBarState extends State<ReaderBottomBar> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Consumer<ReaderNotifier>(
       builder: (context, reader, child) {
         final progress =
@@ -35,86 +36,119 @@ class _ReaderBottomBarState extends State<ReaderBottomBar> {
         final displayValue = _isDraggingSlider
             ? _sliderValue
             : (reader.seekTargetProgress ?? progress).clamp(0.0, 1.0);
+        final chapterTitle = reader.currentChapterTitle;
 
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              16,
-              0,
-              16,
-              24,
-            ),
-            child: Card(
-              elevation: 6,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(32),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 12,
-                ),
-                child: Row(
-                  children: [
-                    // Progress Text
-                    SizedBox(
-                      width: 48,
-                      child: Text(
-                        '${(displayValue * 100).toInt()}%',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onSurface,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
+        final readerTheme = reader.theme;
+        final bgColor = readerTheme.backgroundColor;
+        final textColor = readerTheme.textColor;
 
-                    const SizedBox(width: 12),
-
-                    // Slider
-                    Expanded(
-                      child: SliderTheme(
-                        data:
-                            SliderTheme.of(
-                              context,
-                            ).copyWith(
-                              trackHeight: 4,
-                              activeTrackColor: colorScheme.primary,
-                              inactiveTrackColor:
-                                  colorScheme.surfaceContainerHighest,
-                              thumbShape: const RoundSliderThumbShape(
-                                enabledThumbRadius: 8,
+        return ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: ColoredBox(
+              color: bgColor.withValues(alpha: 0.85),
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    20,
+                    12,
+                    20,
+                    16,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Chapter name
+                      if (chapterTitle != null) ...[
+                        Text(
+                          chapterTitle,
+                          style:
+                              Theme.of(
+                                context,
+                              ).textTheme.bodyMedium?.copyWith(
+                                color: textColor,
+                                fontWeight: FontWeight.w500,
                               ),
-                              overlayShape: const RoundSliderOverlayShape(
-                                overlayRadius: 20,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+
+                      // Slider row
+                      Row(
+                        children: [
+                          // Progress text
+                          SizedBox(
+                            width: 48,
+                            child: Text(
+                              '${(displayValue * 100).toInt()}%',
+                              style:
+                                  Theme.of(
+                                    context,
+                                  ).textTheme.bodyMedium?.copyWith(
+                                    color: textColor,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+
+                          const SizedBox(width: 8),
+
+                          // Slider
+                          Expanded(
+                            child: SliderTheme(
+                              data:
+                                  SliderTheme.of(
+                                    context,
+                                  ).copyWith(
+                                    trackHeight: 4,
+                                    activeTrackColor: textColor,
+                                    inactiveTrackColor: textColor.withValues(
+                                      alpha: 0.2,
+                                    ),
+                                    thumbColor: textColor,
+                                    overlayColor: textColor.withValues(
+                                      alpha: 0.1,
+                                    ),
+                                    thumbShape: const RoundSliderThumbShape(
+                                      enabledThumbRadius: 8,
+                                    ),
+                                    overlayShape: const RoundSliderOverlayShape(
+                                      overlayRadius: 20,
+                                    ),
+                                  ),
+                              child: Slider(
+                                value: displayValue,
+                                onChangeStart: (value) {
+                                  setState(() {
+                                    _isDraggingSlider = true;
+                                    _sliderValue = value;
+                                  });
+                                },
+                                onChanged: (value) {
+                                  setState(() {
+                                    _sliderValue = value;
+                                  });
+                                },
+                                onChangeEnd: (value) {
+                                  context
+                                      .read<ReaderNotifier>()
+                                      .setSeekTargetProgress(value);
+                                  setState(() {
+                                    _isDraggingSlider = false;
+                                  });
+                                  widget.onSeek(value);
+                                },
                               ),
                             ),
-                        child: Slider(
-                          value: displayValue,
-                          onChangeStart: (value) {
-                            setState(() {
-                              _isDraggingSlider = true;
-                              _sliderValue = value;
-                            });
-                          },
-                          onChanged: (value) {
-                            setState(() {
-                              _sliderValue = value;
-                            });
-                          },
-                          onChangeEnd: (value) {
-                            context
-                                .read<ReaderNotifier>()
-                                .setSeekTargetProgress(value);
-                            setState(() {
-                              _isDraggingSlider = false;
-                            });
-                            widget.onSeek(value);
-                          },
-                        ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

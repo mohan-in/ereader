@@ -406,7 +406,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
                 ),
 
                 // Progress Footer
-                if (_isLocationLoaded || widget.book.progress > 0)
+                if ((_isLocationLoaded || widget.book.progress > 0) &&
+                    !_showControls)
                   ReaderFooter(
                     book: widget.book,
                     themeTextColor: themeTextColor,

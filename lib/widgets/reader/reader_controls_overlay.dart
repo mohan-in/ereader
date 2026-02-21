@@ -3,6 +3,7 @@ import 'package:ereader/widgets/reader/reader_bottom_bar.dart';
 import 'package:ereader/widgets/reader/reader_top_bar.dart';
 import 'package:flutter/material.dart';
 
+/// Overlay that slides in top/bottom frosted glass bars.
 class ReaderControlsOverlay extends StatelessWidget {
   const ReaderControlsOverlay({
     required this.book,
@@ -25,23 +26,25 @@ class ReaderControlsOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!isVisible) return const SizedBox.shrink();
-
     return Stack(
       children: [
-        Positioned.fill(
-          child: GestureDetector(
-            onTap: onToggleControls,
-            behavior: HitTestBehavior.translucent,
-            child: Container(
-              color: Colors.transparent,
+        // Dismiss area (always present when visible)
+        if (isVisible)
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: onToggleControls,
+              behavior: HitTestBehavior.translucent,
+              child: const ColoredBox(
+                color: Colors.transparent,
+              ),
             ),
           ),
-        ),
 
-        // Top bar
-        Positioned(
-          top: 0,
+        // Top bar — slides down from top
+        AnimatedPositioned(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+          top: isVisible ? 0 : -150,
           left: 0,
           right: 0,
           child: ReaderTopBar(
@@ -51,9 +54,11 @@ class ReaderControlsOverlay extends StatelessWidget {
           ),
         ),
 
-        // Bottom bar with seek
-        Positioned(
-          bottom: 0,
+        // Bottom bar — slides up from bottom
+        AnimatedPositioned(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+          bottom: isVisible ? 0 : -200,
           left: 0,
           right: 0,
           child: ReaderBottomBar(
