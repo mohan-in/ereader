@@ -108,6 +108,8 @@ lib/
     User taps book → ReaderScreen opens
                    → ReaderNotifier.setCurrentBook() loads settings
                    → EpubViewer displays content
+                   → onChaptersLoaded / onLocationLoaded triggers JS interop
+                     to resolve current chapter title
                    → Location changes saved to LibraryNotifier
                    → LibraryNotifier calls BookRepository to persist updates
     ```
@@ -115,7 +117,7 @@ lib/
 ### State Management
 
 - **LibraryNotifier**: Manages the book collection (add, remove, update progress). Caches sorted book list for performance.
-- **ReaderNotifier**: Manages current reading session (chapters, location, formatting).
+- **ReaderNotifier**: Manages current reading session (chapters, location, formatting, current chapter title).
 
 Both are provided at the app root in `main.dart` via `MultiProvider`.
 

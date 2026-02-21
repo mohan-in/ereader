@@ -18,6 +18,7 @@ class ReaderNotifier extends ChangeNotifier {
   ReaderTheme _theme = ReaderTheme.white;
   String? _error;
   double? _seekTargetProgress;
+  String? _currentChapterTitle;
 
   Book? get currentBook => _currentBook;
   List<EpubChapter> get chapters => _chapters;
@@ -30,12 +31,14 @@ class ReaderNotifier extends ChangeNotifier {
   ReaderTheme get theme => _theme;
   String? get error => _error;
   double? get seekTargetProgress => _seekTargetProgress;
+  String? get currentChapterTitle => _currentChapterTitle;
 
   /// Sets the current book to read and loads its formatting preferences.
   void setCurrentBook(Book book) {
     _currentBook = book;
     _chapters = [];
     _currentLocation = null;
+    _currentChapterTitle = null;
     _error = null;
 
     // Load formatting from book
@@ -139,6 +142,15 @@ class ReaderNotifier extends ChangeNotifier {
     _isLoading = false;
     _error = null;
     _seekTargetProgress = null;
+    _currentChapterTitle = null;
     notifyListeners();
+  }
+
+  /// Sets the current chapter title (resolved externally via JS interop).
+  void setCurrentChapterTitle(String? title) {
+    if (title != null && title != _currentChapterTitle) {
+      _currentChapterTitle = title;
+      notifyListeners();
+    }
   }
 }

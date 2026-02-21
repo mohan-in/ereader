@@ -80,6 +80,63 @@ class _ReaderScreenState extends State<ReaderScreen> {
     super.dispose();
   }
 
+  /// Queries epub.js for the current section href, then matches it
+  /// against the loaded chapters list to resolve the chapter title.
+  Future<void> _resolveChapterTitle() async {
+    try {
+      final result = await _epubController.webViewController
+          ?.evaluateJavascript(
+            source:
+                '(function() {'
+                ' try {'
+                ' var loc = window.rendition.currentLocation();'
+                ' return loc && loc.start'
+                ' ? loc.start.href : null;'
+                ' } catch(e) { return null; }'
+                ' })()',
+          );
+
+      if (result == null || result == 'null' || !mounted) return;
+
+      final currentHref = result.toString();
+      final reader = context.read<ReaderNotifier>();
+      final chapters = reader.chapters;
+
+      if (chapters.isEmpty) return;
+
+      // Flatten and search for a matching chapter
+      final flat = _flattenChapters(chapters);
+      for (final chapter in flat.reversed) {
+        if (chapter.href.isEmpty) continue;
+
+        // Match: chapter href matches or is contained in the current href
+        final chapterBase = chapter.href.split('#').first;
+        if (currentHref == chapterBase ||
+            currentHref.endsWith(chapterBase) ||
+            currentHref.contains(chapterBase)) {
+          final title = chapter.title.trim().replaceAll('\n', ' ');
+          if (title.isNotEmpty) {
+            reader.setCurrentChapterTitle(title);
+          }
+          return;
+        }
+      }
+    } on Exception catch (_) {
+      // Silently fail — chapter title is non-critical
+    }
+  }
+
+  List<EpubChapter> _flattenChapters(List<EpubChapter> chapters) {
+    final result = <EpubChapter>[];
+    for (final chapter in chapters) {
+      result.add(chapter);
+      if (chapter.subitems.isNotEmpty) {
+        result.addAll(_flattenChapters(chapter.subitems));
+      }
+    }
+    return result;
+  }
+
   /// Fire-and-forget save of the current location.
   /// Used when the user closes the screen to ensure the latest location is
   /// saved even if `onRelocated` hasn't fired yet.
@@ -249,12 +306,14 @@ class _ReaderScreenState extends State<ReaderScreen> {
                   onChaptersLoaded: (chapters) {
                     if (!mounted) return;
                     context.read<ReaderNotifier>().setChapters(chapters);
+                    unawaited(_resolveChapterTitle());
                   },
                   onLocationLoaded: () {
                     if (!mounted) return;
                     setState(() {
                       _isLocationLoaded = true;
                     });
+                    unawaited(_resolveChapterTitle());
                     if (_pendingSeekProgress != null) {
                       _seekTo(_pendingSeekProgress!);
                       _pendingSeekProgress = null;
@@ -312,15 +371,17 @@ class _ReaderScreenState extends State<ReaderScreen> {
                       return;
                     }
 
-                    if (_isInitialNavigation) {
-                      _isInitialNavigation = false;
-                      return;
-                    }
-
                     if (mounted) {
                       context.read<ReaderNotifier>().setCurrentLocation(
                         location,
                       );
+                      unawaited(_resolveChapterTitle());
+                    }
+
+                    // Skip saving during the initial CFI navigation
+                    if (_isInitialNavigation) {
+                      _isInitialNavigation = false;
+                      return;
                     }
 
                     // Always try to save the progress to library
@@ -345,8 +406,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                 ),
 
                 // Progress Footer
-                if ((_isLocationLoaded || widget.book.progress > 0) &&
-                    !_showControls)
+                if (_isLocationLoaded || widget.book.progress > 0)
                   ReaderFooter(
                     book: widget.book,
                     themeTextColor: themeTextColor,

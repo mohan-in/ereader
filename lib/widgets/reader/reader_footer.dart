@@ -16,20 +16,43 @@ class ReaderFooter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Positioned(
+      left: 16,
       right: 16,
       bottom: 8,
       child: Consumer<ReaderNotifier>(
         builder: (context, reader, child) {
           final progress = reader.currentLocation?.progress ?? book.progress;
-          return Text(
-            '${(progress * 100).toStringAsFixed(0)}%',
-            style: TextStyle(
-              fontSize: 12,
-              color: themeTextColor.withValues(
-                alpha: 0.6,
+          final chapterTitle = reader.currentChapterTitle;
+          final footerColor = themeTextColor.withValues(alpha: 0.6);
+          final footerStyle = TextStyle(
+            fontSize: 12,
+            color: footerColor,
+            fontWeight: FontWeight.w500,
+          );
+
+          return Row(
+            children: [
+              // Chapter name (left)
+              if (chapterTitle != null)
+                Expanded(
+                  child: Text(
+                    chapterTitle,
+                    style: footerStyle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                )
+              else
+                const Spacer(),
+
+              const SizedBox(width: 8),
+
+              // Progress percentage (right)
+              Text(
+                '${(progress * 100).toStringAsFixed(0)}%',
+                style: footerStyle,
               ),
-              fontWeight: FontWeight.w500,
-            ),
+            ],
           );
         },
       ),
