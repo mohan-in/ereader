@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:dex_compat/dex_compat.dart';
 import 'package:ereader/notifiers/library_notifier.dart';
 import 'package:ereader/notifiers/reader_notifier.dart';
+import 'package:ereader/notifiers/theme_notifier.dart';
 import 'package:ereader/repositories/book_repository.dart';
 import 'package:ereader/screens/library_screen.dart';
 import 'package:ereader/services/epub_parser_service.dart';
@@ -55,13 +56,19 @@ class EReaderApp extends StatelessWidget {
               previous!,
         ),
         ChangeNotifierProvider(create: (_) => ReaderNotifier()),
+        ChangeNotifierProvider(create: (_) => ThemeNotifier(prefs: prefs)),
       ],
-      child: MaterialApp(
-        title: 'eReader',
-        theme: AppTheme.lightTheme,
-        themeMode: ThemeMode.light,
-        home: const LibraryScreen(),
-        builder: DexCompat.builder(isDesktopMode),
+      child: Consumer<ThemeNotifier>(
+        builder: (context, themeNotifier, child) {
+          return MaterialApp(
+            title: 'eReader',
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: themeNotifier.themeMode,
+            home: const LibraryScreen(),
+            builder: DexCompat.builder(isDesktopMode),
+          );
+        },
       ),
     );
   }

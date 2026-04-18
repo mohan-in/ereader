@@ -44,7 +44,8 @@ lib/
 ├── notifiers/
 │   ├── notifiers.dart         # Barrel export
 │   ├── library_notifier.dart  # Manages book collection
-│   └── reader_notifier.dart   # Manages reading session state
+│   ├── reader_notifier.dart   # Manages reading session state
+│   └── theme_notifier.dart    # Manages application theme mode
 ├── repositories/
 │   └── book_repository.dart   # Handles book persistence (SharedPreferences)
 ├── screens/
@@ -118,8 +119,9 @@ lib/
 
 - **LibraryNotifier**: Manages the book collection (add, remove, update progress). Caches sorted book list for performance.
 - **ReaderNotifier**: Manages current reading session (chapters, location, formatting, current chapter title).
+- **ThemeNotifier**: Manages application-wide theme mode (system, light, dark) and persists it.
 
-Both are provided at the app root in `main.dart` via `MultiProvider`.
+All notifiers are provided at the app root in `main.dart` via `MultiProvider`.
 
 ### Dependency Injection
 

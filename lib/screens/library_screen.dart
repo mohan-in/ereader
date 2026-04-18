@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:ereader/models/book.dart';
 import 'package:ereader/notifiers/library_notifier.dart';
+import 'package:ereader/notifiers/theme_notifier.dart';
 import 'package:ereader/screens/reader_screen.dart';
 import 'package:ereader/widgets/book_card.dart';
 import 'package:ereader/widgets/sheet_drag_handle.dart';
@@ -23,7 +24,38 @@ class _LibraryScreenState extends State<LibraryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Library')),
+      appBar: AppBar(
+        title: const Text('Library'),
+        actions: [
+          Consumer<ThemeNotifier>(
+            builder: (context, themeNotifier, child) {
+              return PopupMenuButton<ThemeMode>(
+                icon: const Icon(Icons.brightness_medium_outlined),
+                tooltip: 'App Theme',
+                initialValue: themeNotifier.themeMode,
+                onSelected: themeNotifier.updateThemeMode,
+                itemBuilder: (context) => [
+                  CheckedPopupMenuItem(
+                    value: ThemeMode.system,
+                    checked: themeNotifier.themeMode == ThemeMode.system,
+                    child: const Text('System'),
+                  ),
+                  CheckedPopupMenuItem(
+                    value: ThemeMode.light,
+                    checked: themeNotifier.themeMode == ThemeMode.light,
+                    child: const Text('Light'),
+                  ),
+                  CheckedPopupMenuItem(
+                    value: ThemeMode.dark,
+                    checked: themeNotifier.themeMode == ThemeMode.dark,
+                    child: const Text('Dark'),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
       body: Consumer<LibraryNotifier>(
         builder: (context, library, child) {
           if (library.isLoading) {
