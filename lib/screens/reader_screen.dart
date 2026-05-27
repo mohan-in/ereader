@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:ereader/models/book.dart';
 import 'package:ereader/notifiers/library_notifier.dart';
 import 'package:ereader/notifiers/reader_notifier.dart';
-import 'package:ereader/utils/epub_style_injector.dart';
+import 'package:ereader/utils/epub_js_bridge.dart';
 import 'package:ereader/widgets/reader/chapters_sheet.dart';
 import 'package:ereader/widgets/reader/reader_content.dart';
 import 'package:ereader/widgets/reader/reader_controls_overlay.dart';
@@ -35,6 +35,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
   static const Duration _postNavigationDelay = Duration(milliseconds: 200);
 
   late final EpubController _epubController;
+  late final EpubJsBridge _jsBridge;
   bool _showControls = false;
   bool _isLocationLoaded = false;
 
@@ -61,6 +62,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
     super.initState();
     _libraryNotifier = context.read<LibraryNotifier>();
     _epubController = EpubController();
+    _jsBridge = EpubJsBridge(_epubController);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ReaderNotifier>().setCurrentBook(widget.book);
@@ -84,21 +86,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
   /// against the loaded chapters list to resolve the chapter title.
   Future<void> _resolveChapterTitle() async {
     try {
-      final result = await _epubController.webViewController
-          ?.evaluateJavascript(
-            source:
-                '(function() {'
-                ' try {'
-                ' var loc = window.rendition.currentLocation();'
-                ' return loc && loc.start'
-                ' ? loc.start.href : null;'
-                ' } catch(e) { return null; }'
-                ' })()',
-          );
-
-      if (result == null || result == 'null' || !mounted) return;
-
-      final currentHref = result.toString();
+      final currentHref = await _jsBridge.resolveCurrentLocationHref();
+      if (currentHref == null || !mounted) return;
       final reader = context.read<ReaderNotifier>();
       final chapters = reader.chapters;
 
@@ -168,42 +157,14 @@ class _ReaderScreenState extends State<ReaderScreen> {
   void _applyFormattingSettings() {
     final reader = context.read<ReaderNotifier>();
 
-    // Apply font size
-    _epubController.setFontSize(
-      fontSize: reader.fontSize,
-    );
-
-    // Apply font family
-    if (reader.font != ReaderFont.bookDefault) {
-      unawaited(
-        _epubController.webViewController?.evaluateJavascript(
-              source: 'rendition.themes.font("${reader.font.fontFamily}")',
-            ) ??
-            Future<void>.value(),
-      );
-    }
-
-    // Apply line spacing, text alignment, and theme
-    final styleScript = EpubStyleInjector.buildStyleScript(
-      lineHeight: reader.lineSpacing.value,
-      textAlign: reader.textAlignment.cssValue,
-      bgColor: reader.theme.backgroundCssHex,
-      textColor: reader.theme.textCssHex,
-    );
-
     unawaited(
-      _epubController.webViewController?.evaluateJavascript(
-            source: styleScript,
-          ) ??
-          Future<void>.value(),
-    );
-
-    // Add padding to bottom for progress footer
-    unawaited(
-      _epubController.webViewController?.evaluateJavascript(
-            source: EpubStyleInjector.bottomPaddingScript,
-          ) ??
-          Future<void>.value(),
+      _jsBridge.applyFormatting(
+        fontSize: reader.fontSize,
+        font: reader.font,
+        lineSpacing: reader.lineSpacing,
+        textAlignment: reader.textAlignment,
+        theme: reader.theme,
+      ),
     );
 
     // Trigger rebuild to update scaffold background

@@ -44,108 +44,94 @@ class _ReaderBottomBarState extends State<ReaderBottomBar> {
 
         return ClipRect(
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-            child: ColoredBox(
-              color: bgColor.withValues(alpha: 0.85),
+            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+            child: Container(
+              decoration: BoxDecoration(
+                color: bgColor.withValues(alpha: 0.85),
+                border: Border(
+                  top: BorderSide(
+                    color: textColor.withValues(alpha: 0.1),
+                  ),
+                ),
+              ),
               child: SafeArea(
                 top: false,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    20,
-                    12,
-                    20,
-                    16,
-                  ),
+                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Chapter name
-                      if (chapterTitle != null) ...[
-                        Text(
-                          chapterTitle,
-                          style:
-                              Theme.of(
-                                context,
-                              ).textTheme.bodyMedium?.copyWith(
-                                color: textColor,
-                                fontWeight: FontWeight.w500,
-                              ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-
-                      // Slider row
+                      // Chapter Title & Progress Details
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          // Progress text
-                          SizedBox(
-                            width: 48,
+                          Expanded(
                             child: Text(
-                              '${(displayValue * 100).toInt()}%',
-                              style:
-                                  Theme.of(
-                                    context,
-                                  ).textTheme.bodyMedium?.copyWith(
-                                    color: textColor,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                              textAlign: TextAlign.center,
+                              chapterTitle ?? 'Reading...',
+                              style: TextStyle(
+                                color: textColor,
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: -0.2,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-
-                          const SizedBox(width: 8),
-
-                          // Slider
-                          Expanded(
-                            child: SliderTheme(
-                              data:
-                                  SliderTheme.of(
-                                    context,
-                                  ).copyWith(
-                                    trackHeight: 4,
-                                    activeTrackColor: textColor,
-                                    inactiveTrackColor: textColor.withValues(
-                                      alpha: 0.2,
-                                    ),
-                                    thumbColor: textColor,
-                                    overlayColor: textColor.withValues(
-                                      alpha: 0.1,
-                                    ),
-                                    thumbShape: const RoundSliderThumbShape(
-                                      enabledThumbRadius: 8,
-                                    ),
-                                    overlayShape: const RoundSliderOverlayShape(
-                                      overlayRadius: 20,
-                                    ),
-                                  ),
-                              child: Slider(
-                                value: displayValue,
-                                onChangeStart: (value) {
-                                  setState(() {
-                                    _isDraggingSlider = true;
-                                    _sliderValue = value;
-                                  });
-                                },
-                                onChanged: (value) {
-                                  setState(() {
-                                    _sliderValue = value;
-                                  });
-                                },
-                                onChangeEnd: (value) {
-                                  context
-                                      .read<ReaderNotifier>()
-                                      .setSeekTargetProgress(value);
-                                  setState(() {
-                                    _isDraggingSlider = false;
-                                  });
-                                  widget.onSeek(value);
-                                },
-                              ),
+                          const SizedBox(width: 12),
+                          Text(
+                            '${(displayValue * 100).toInt()}%',
+                            style: TextStyle(
+                              color: textColor,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 8),
+
+                      // Slider Row
+                      SliderTheme(
+                        data: SliderTheme.of(context).copyWith(
+                          trackHeight: 4,
+                          activeTrackColor: textColor,
+                          inactiveTrackColor: textColor.withValues(alpha: 0.2),
+                          thumbColor: textColor,
+                          overlayColor: textColor.withValues(alpha: 0.1),
+                          thumbShape: const RoundSliderThumbShape(
+                            enabledThumbRadius: 8,
+                          ),
+                          overlayShape: const RoundSliderOverlayShape(
+                            overlayRadius: 18,
+                          ),
+                        ),
+                        child: SizedBox(
+                          height: 32,
+                          child: Slider(
+                            value: displayValue,
+                            onChangeStart: (value) {
+                              setState(() {
+                                _isDraggingSlider = true;
+                                _sliderValue = value;
+                              });
+                            },
+                            onChanged: (value) {
+                              setState(() {
+                                _sliderValue = value;
+                              });
+                            },
+                            onChangeEnd: (value) {
+                              context
+                                  .read<ReaderNotifier>()
+                                  .setSeekTargetProgress(value);
+                              setState(() {
+                                _isDraggingSlider = false;
+                              });
+                              widget.onSeek(value);
+                            },
+                          ),
+                        ),
                       ),
                     ],
                   ),

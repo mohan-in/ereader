@@ -3,16 +3,17 @@ import 'dart:io';
 import 'package:ereader/models/book.dart';
 import 'package:flutter/material.dart';
 
-/// A card widget displaying a book cover and metadata.
+/// A card widget displaying a book cover and metadata following Material 3.
 ///
-/// Shows the book cover (or a gradient placeholder if none),
-/// title, author, and last read time.
-class BookCard extends StatelessWidget {
+/// Shows the book cover (or a premium stylized placeholder if none),
+/// title, author, a quick actions menu, and read progress.
+class BookCard extends StatefulWidget {
   const BookCard({
     required this.book,
     required this.index,
     required this.onTap,
     required this.onLongPress,
+    required this.onMenuTap,
     super.key,
   });
 
@@ -20,136 +21,178 @@ class BookCard extends StatelessWidget {
   final int index;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
+  final VoidCallback onMenuTap;
 
-  // Gradient combinations for book covers without images
+  @override
+  State<BookCard> createState() => _BookCardState();
+}
+
+class _BookCardState extends State<BookCard> {
+  bool _isPressed = false;
+
+  // Premium mesh-like gradient combinations for placeholders
   static const List<List<Color>> _gradients = [
-    [Color(0xFF667eea), Color(0xFF764ba2)],
-    [Color(0xFFf093fb), Color(0xFFf5576c)],
-    [Color(0xFF4facfe), Color(0xFF00f2fe)],
-    [Color(0xFF43e97b), Color(0xFF38f9d7)],
-    [Color(0xFFfa709a), Color(0xFFfee140)],
-    [Color(0xFFa8edea), Color(0xFFfed6e3)],
-    [Color(0xFFffecd2), Color(0xFFfcb69f)],
-    [Color(0xFF667eea), Color(0xFF764ba2)],
+    [Color(0xFF4F46E5), Color(0xFF818CF8)], // Indigo
+    [Color(0xFF0EA5E9), Color(0xFF38BDF8)], // Sky
+    [Color(0xFF10B981), Color(0xFF34D399)], // Emerald
+    [Color(0xFFF43F5E), Color(0xFFFB7185)], // Rose
+    [Color(0xFFD946EF), Color(0xFFF472B6)], // Fuchsia / Pink
+    [Color(0xFFF59E0B), Color(0xFFFBBF24)], // Amber
+    [Color(0xFF8B5CF6), Color(0xFFA78BFA)], // Violet
+    [Color(0xFF06B6D4), Color(0xFF22D3EE)], // Cyan
   ];
 
   @override
   Widget build(BuildContext context) {
-    final colors = _gradients[index % _gradients.length];
+    final colors = _gradients[widget.index % _gradients.length];
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return GestureDetector(
-      onTap: onTap,
-      onLongPress: onLongPress,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: colors[0].withValues(alpha: 0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
+      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapUp: (_) => setState(() => _isPressed = false),
+      onTapCancel: () => setState(() => _isPressed = false),
+      onTap: widget.onTap,
+      onLongPress: widget.onLongPress,
+      child: AnimatedScale(
+        scale: _isPressed ? 0.95 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOutCubic,
+        child: Card(
+          clipBehavior: Clip.antiAlias,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Book cover
+              // Cover Area (Flex 5)
               Expanded(
                 flex: 5,
-                child: book.coverPath != null
-                    ? Image.file(
-                        File(book.coverPath!),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    // Base cover image or placeholder
+                    if (widget.book.coverPath != null)
+                      Image.file(
+                        File(widget.book.coverPath!),
                         fit: BoxFit.fill,
                         cacheWidth: 300,
-                        errorBuilder:
-                            (
-                              context,
-                              error,
-                              stackTrace,
-                            ) {
-                              return _buildPlaceholderCover(
-                                context,
-                                colors,
-                              );
-                            },
+                        errorBuilder: (context, error, stackTrace) {
+                          return _buildPlaceholderCover(colors);
+                        },
                       )
-                    : _buildPlaceholderCover(
-                        context,
-                        colors,
+                    else
+                      _buildPlaceholderCover(colors),
+
+                    // Book Spine Shadow Overlay to simulate physical book depth
+                    Positioned(
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: 10,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.black.withValues(alpha: 0.22),
+                              Colors.black.withValues(alpha: 0.08),
+                              Colors.transparent,
+                            ],
+                            stops: const [0.0, 0.4, 1.0],
+                          ),
+                        ),
                       ),
+                    ),
+
+                    // Cover Edge Highlights
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(
+                            color: colorScheme.outlineVariant.withValues(
+                              alpha: 0.1,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              // Book info
-              ColoredBox(
-                color: Theme.of(context).cardColor,
+
+              // Metadata & Info Area
+              Padding(
+                padding: const EdgeInsets.all(12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            book.title,
-                            style: Theme.of(context).textTheme.titleSmall
-                                ?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  height: 1.2,
-                                ),
+                    // Title and Quick Action Button Row
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            widget.book.title,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              height: 1.25,
+                            ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          if (book.author != null) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              book.author!,
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(
-                                    color:
-                                        Theme.of(
-                                          context,
-                                        ).colorScheme.onSurface.withValues(
-                                          alpha: 0.6,
-                                        ),
-                                  ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    // Progress bar
-                    if (book.progress > 0)
-                      Container(
-                        height: 3,
-                        decoration: BoxDecoration(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.primary.withValues(alpha: 0.15),
                         ),
-                        alignment: Alignment.centerLeft,
-                        child: FractionallySizedBox(
-                          widthFactor: book.progress.clamp(0.0, 1.0),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primary,
-                              borderRadius: const BorderRadius.only(
-                                topRight: Radius.circular(2),
-                                bottomRight: Radius.circular(2),
-                              ),
-                            ),
+                        const SizedBox(width: 4),
+                        // Quick options menu trigger
+                        IconButton(
+                          icon: Icon(
+                            Icons.more_vert_rounded,
+                            size: 18,
+                            color: colorScheme.onSurfaceVariant,
                           ),
+                          onPressed: widget.onMenuTap,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          style: const ButtonStyle(
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          tooltip: 'Options',
                         ),
+                      ],
+                    ),
+
+                    // Author Name
+                    if (widget.book.author != null &&
+                        widget.book.author!.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        widget.book.author!,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
+                    ],
                   ],
                 ),
               ),
+
+              // Floating thin progress bar at card bottom
+              if (widget.book.progress > 0)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: widget.book.progress.clamp(0.0, 1.0),
+                      minHeight: 4,
+                      backgroundColor: colorScheme.primaryContainer.withValues(
+                        alpha: 0.4,
+                      ),
+                      color: colorScheme.primary,
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -157,10 +200,8 @@ class BookCard extends StatelessWidget {
     );
   }
 
-  Widget _buildPlaceholderCover(
-    BuildContext context,
-    List<Color> colors,
-  ) {
+  /// Builds a gorgeous stylized placeholder cover for books without artwork.
+  Widget _buildPlaceholderCover(List<Color> colors) {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -169,12 +210,61 @@ class BookCard extends StatelessWidget {
           colors: colors,
         ),
       ),
-      child: Center(
-        child: Icon(
-          Icons.menu_book_rounded,
-          size: 48,
-          color: Colors.white.withValues(alpha: 0.9),
-        ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Elegant Book Logo
+          Icon(
+            Icons.menu_book_rounded,
+            size: 32,
+            color: Colors.white.withValues(alpha: 0.95),
+          ),
+          const SizedBox(height: 12),
+
+          // Styled Book Title on the cover
+          Expanded(
+            child: Center(
+              child: Text(
+                widget.book.title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: 'serif',
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  letterSpacing: -0.2,
+                  height: 1.3,
+                ),
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+
+          // Elegant Divider Line
+          Container(
+            width: 28,
+            height: 1.5,
+            color: Colors.white.withValues(alpha: 0.6),
+            margin: const EdgeInsets.symmetric(vertical: 8),
+          ),
+
+          // Styled Author Name on the cover
+          if (widget.book.author != null && widget.book.author!.isNotEmpty)
+            Text(
+              widget.book.author!.toUpperCase(),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.w600,
+                color: Colors.white.withValues(alpha: 0.9),
+                letterSpacing: 0.8,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+        ],
       ),
     );
   }

@@ -7,4 +7,3 @@ export 'package:ereader/widgets/reader/reader_footer.dart';
 export 'package:ereader/widgets/reader/reader_settings_sheet.dart';
 export 'package:ereader/widgets/reader/reader_top_bar.dart';
 export 'package:ereader/widgets/reader/text_selection_sheet.dart';
-export 'package:ereader/widgets/sheet_drag_handle.dart';
