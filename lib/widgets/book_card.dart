@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:ereader/models/book.dart';
+import 'package:suvadi/models/book.dart';
 import 'package:flutter/material.dart';
 
 /// A card widget displaying a book cover and metadata following Material 3.

@@ -1,9 +1,9 @@
 import 'dart:async';
 
-import 'package:ereader/models/book.dart';
-import 'package:ereader/repositories/book_repository.dart';
-import 'package:ereader/services/epub_parser_service.dart';
-import 'package:ereader/services/file_service.dart';
+import 'package:suvadi/models/book.dart';
+import 'package:suvadi/repositories/book_repository.dart';
+import 'package:suvadi/services/epub_parser_service.dart';
+import 'package:suvadi/services/file_service.dart';
 import 'package:flutter/widgets.dart';
 
 /// Manages the book library state with persistence.

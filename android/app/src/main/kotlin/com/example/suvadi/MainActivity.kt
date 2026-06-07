@@ -1,4 +1,4 @@
-package com.example.ereader
+package com.example.suvadi
 
 import io.flutter.embedding.android.FlutterActivity
 

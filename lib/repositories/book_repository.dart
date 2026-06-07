@@ -1,4 +1,4 @@
-import 'package:ereader/models/book.dart';
+import 'package:suvadi/models/book.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Repository for managing Book persistence.

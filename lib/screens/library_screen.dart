@@ -1,10 +1,10 @@
 import 'dart:async';
 
-import 'package:ereader/models/book.dart';
-import 'package:ereader/notifiers/library_notifier.dart';
-import 'package:ereader/notifiers/theme_notifier.dart';
-import 'package:ereader/screens/reader_screen.dart';
-import 'package:ereader/widgets/book_card.dart';
+import 'package:suvadi/models/book.dart';
+import 'package:suvadi/notifiers/library_notifier.dart';
+import 'package:suvadi/notifiers/theme_notifier.dart';
+import 'package:suvadi/screens/reader_screen.dart';
+import 'package:suvadi/widgets/book_card.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';

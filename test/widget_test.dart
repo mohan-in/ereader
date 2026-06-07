@@ -1,8 +1,8 @@
-import 'package:ereader/notifiers/library_notifier.dart';
-import 'package:ereader/notifiers/reader_notifier.dart';
-import 'package:ereader/repositories/book_repository.dart';
-import 'package:ereader/services/epub_parser_service.dart';
-import 'package:ereader/services/file_service.dart';
+import 'package:suvadi/notifiers/library_notifier.dart';
+import 'package:suvadi/notifiers/reader_notifier.dart';
+import 'package:suvadi/repositories/book_repository.dart';
+import 'package:suvadi/services/epub_parser_service.dart';
+import 'package:suvadi/services/file_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';

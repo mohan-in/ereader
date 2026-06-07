@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:ereader/notifiers/library_notifier.dart';
-import 'package:ereader/notifiers/reader_notifier.dart';
+import 'package:suvadi/notifiers/library_notifier.dart';
+import 'package:suvadi/notifiers/reader_notifier.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 

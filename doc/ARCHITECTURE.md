@@ -1,4 +1,4 @@
-# eReader Source Code
+# Suvadi Source Code
 
 A simple EPUB reader app built with Flutter.
 
@@ -136,10 +136,10 @@ Dependencies are injected using **Provider** in `main.dart`.
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
-  runApp(EReaderApp(prefs: prefs));
+  runApp(SuvadiApp(prefs: prefs));
 }
 
-// Inside EReaderApp.build():
+// Inside SuvadiApp.build():
 ChangeNotifierProxyProvider3<
   BookRepository,
   FileService,

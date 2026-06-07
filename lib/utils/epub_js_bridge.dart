@@ -1,5 +1,5 @@
-import 'package:ereader/notifiers/reader_notifier.dart';
-import 'package:ereader/utils/epub_style_injector.dart';
+import 'package:suvadi/notifiers/reader_notifier.dart';
+import 'package:suvadi/utils/epub_style_injector.dart';
 import 'package:flutter_epub_viewer/flutter_epub_viewer.dart';
 
 /// JS interop bridge to encapsulate all WebView JavaScript evaluations.

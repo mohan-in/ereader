@@ -1,9 +1,9 @@
-import 'package:ereader/models/book.dart';
-import 'package:ereader/models/reader_enums.dart';
+import 'package:suvadi/models/book.dart';
+import 'package:suvadi/models/reader_enums.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_epub_viewer/flutter_epub_viewer.dart';
 
-export 'package:ereader/models/reader_enums.dart';
+export 'package:suvadi/models/reader_enums.dart';
 
 /// Manages the EPUB reader state.
 class ReaderNotifier extends ChangeNotifier {

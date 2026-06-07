@@ -1,14 +1,14 @@
 import 'dart:async';
 
 import 'package:dex_compat/dex_compat.dart';
-import 'package:ereader/notifiers/library_notifier.dart';
-import 'package:ereader/notifiers/reader_notifier.dart';
-import 'package:ereader/notifiers/theme_notifier.dart';
-import 'package:ereader/repositories/book_repository.dart';
-import 'package:ereader/screens/library_screen.dart';
-import 'package:ereader/services/epub_parser_service.dart';
-import 'package:ereader/services/file_service.dart';
-import 'package:ereader/theme/app_theme.dart';
+import 'package:suvadi/notifiers/library_notifier.dart';
+import 'package:suvadi/notifiers/reader_notifier.dart';
+import 'package:suvadi/notifiers/theme_notifier.dart';
+import 'package:suvadi/repositories/book_repository.dart';
+import 'package:suvadi/screens/library_screen.dart';
+import 'package:suvadi/services/epub_parser_service.dart';
+import 'package:suvadi/services/file_service.dart';
+import 'package:suvadi/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -17,11 +17,11 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
   final isDesktopMode = await DexCompat.isDesktopMode();
-  runApp(EReaderApp(prefs: prefs, isDesktopMode: isDesktopMode));
+  runApp(SuvadiApp(prefs: prefs, isDesktopMode: isDesktopMode));
 }
 
-class EReaderApp extends StatelessWidget {
-  const EReaderApp({
+class SuvadiApp extends StatelessWidget {
+  const SuvadiApp({
     required this.prefs,
     required this.isDesktopMode,
     super.key,
@@ -61,7 +61,7 @@ class EReaderApp extends StatelessWidget {
       child: Consumer<ThemeNotifier>(
         builder: (context, themeNotifier, child) {
           return MaterialApp(
-            title: 'eReader',
+            title: 'Suvadi',
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: themeNotifier.themeMode,

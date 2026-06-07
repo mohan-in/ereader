@@ -1,4 +1,4 @@
-name: ereader
+name: suvadi
 description: "A Flutter EPUB reader application."
 publish_to: 'none'
 version: 1.0.0+1

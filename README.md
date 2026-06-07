@@ -1,4 +1,4 @@
-# eReader
+# Suvadi
 
 A clean and simple EPUB reader application built with Flutter.
 

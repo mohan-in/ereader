@@ -1,6 +1,6 @@
-import 'package:ereader/models/book.dart';
-import 'package:ereader/widgets/reader/reader_bottom_bar.dart';
-import 'package:ereader/widgets/reader/reader_top_bar.dart';
+import 'package:suvadi/models/book.dart';
+import 'package:suvadi/widgets/reader/reader_bottom_bar.dart';
+import 'package:suvadi/widgets/reader/reader_top_bar.dart';
 import 'package:flutter/material.dart';
 
 /// Overlay that slides in top/bottom frosted glass bars.

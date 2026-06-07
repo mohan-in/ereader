@@ -1,15 +1,15 @@
 import 'dart:async';
 
-import 'package:ereader/models/book.dart';
-import 'package:ereader/notifiers/library_notifier.dart';
-import 'package:ereader/notifiers/reader_notifier.dart';
-import 'package:ereader/utils/epub_js_bridge.dart';
-import 'package:ereader/widgets/reader/chapters_sheet.dart';
-import 'package:ereader/widgets/reader/reader_content.dart';
-import 'package:ereader/widgets/reader/reader_controls_overlay.dart';
-import 'package:ereader/widgets/reader/reader_footer.dart';
-import 'package:ereader/widgets/reader/reader_settings_sheet.dart';
-import 'package:ereader/widgets/reader/text_selection_sheet.dart';
+import 'package:suvadi/models/book.dart';
+import 'package:suvadi/notifiers/library_notifier.dart';
+import 'package:suvadi/notifiers/reader_notifier.dart';
+import 'package:suvadi/utils/epub_js_bridge.dart';
+import 'package:suvadi/widgets/reader/chapters_sheet.dart';
+import 'package:suvadi/widgets/reader/reader_content.dart';
+import 'package:suvadi/widgets/reader/reader_controls_overlay.dart';
+import 'package:suvadi/widgets/reader/reader_footer.dart';
+import 'package:suvadi/widgets/reader/reader_settings_sheet.dart';
+import 'package:suvadi/widgets/reader/text_selection_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_epub_viewer/flutter_epub_viewer.dart';
